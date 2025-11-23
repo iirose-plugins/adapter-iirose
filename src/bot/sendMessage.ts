@@ -3,8 +3,7 @@ import { Context, MessageEncoder, h } from 'koishi';
 
 import { } from '@koishijs/assets';
 
-import { cacheSentMessage, ensureNewlineBefore, rgbaToHex, Unknown_User_Name } from '../utils/utils';
-import { decode as unescapeHtml } from '../utils/entities';
+import { cacheSentMessage, ensureNewlineBefore, rgbaToHex, transformUrl, Unknown_User_Name } from '../utils/utils';
 import PrivateMessage from '../encoder/messages/PrivateMessage';
 import PublicMessage from '../encoder/messages/PublicMessage';
 import { IIROSE_WSsend } from '../utils/ws';
@@ -103,26 +102,15 @@ export class IIROSE_BotMessageEncoder extends MessageEncoder<Context, IIROSE_Bot
         } else
         {
           // 使用 assets 服务转存非 https 协议的资源
-          try
+          const transformedUrl = await transformUrl(this.bot, h.video(url).toString());
+          if (transformedUrl)
           {
-            const videoElement = `${h.video(url)}`;
-            const transformedContent = await this.bot.ctx.assets.transform(videoElement);
-
-            // 从转存后的内容中提取 URL
-            const urlMatch = transformedContent.match(/src="([^"]+)"/);
-            if (urlMatch && urlMatch[1])
-            {
-              url = unescapeHtml(urlMatch[1]);
-            } else
-            {
-              throw new Error('无法从转存结果中提取视频 URL');
-            }
-          } catch (error)
+            url = transformedUrl;
+          } else
           {
             this.outDataOringin = ensureNewlineBefore(this.outDataOringin);
-            this.outDataOringin += '[视频转存异常]';
+            this.outDataOringin += '[视频转存失败]';
             this.outDataOringin += '\n';
-            this.bot.loggerError(error);
             break;
           }
         }
@@ -144,24 +132,13 @@ export class IIROSE_BotMessageEncoder extends MessageEncoder<Context, IIROSE_Bot
         } else
         {
           // 使用 assets 服务转存非 https 协议的资源
-          try
+          const transformedUrl = await transformUrl(this.bot, h.audio(url).toString());
+          if (transformedUrl)
           {
-            const audioElement = `${h.audio(url)}`;
-            const transformedContent = await this.bot.ctx.assets.transform(audioElement);
-
-            // 从转存后的内容中提取 URL
-            const urlMatch = transformedContent.match(/src="([^"]+)"/);
-            if (urlMatch && urlMatch[1])
-            {
-              url = unescapeHtml(urlMatch[1]);
-            } else
-            {
-              throw new Error('无法从转存结果中提取音频 URL');
-            }
-          } catch (error)
+            url = transformedUrl;
+          } else
           {
-            this.outDataOringin += '[音频转存异常]';
-            this.bot.loggerError(error);
+            this.outDataOringin += '[音频转存失败]';
             break;
           }
         }
@@ -219,29 +196,17 @@ export class IIROSE_BotMessageEncoder extends MessageEncoder<Context, IIROSE_Bot
           break;
         }
         // 使用 assets 服务转存非 https 协议的资源
-        try
-        {
-          const imgElement = `${h.image(url)}`;
-          const transformedContent = await this.bot.ctx.assets.transform(imgElement);
-
-          // 从转存后的内容中提取 URL
-          const urlMatch = transformedContent.match(/src="([^"]+)"/);
-          if (urlMatch && urlMatch[1])
-          {
-            const transformedUrl = unescapeHtml(urlMatch[1]);
-            this.outDataOringin = ensureNewlineBefore(this.outDataOringin);
-            this.outDataOringin += `[${transformedUrl}#e]`;
-            this.outDataOringin += '\n';
-          } else
-          {
-            throw new Error('无法从转存结果中提取图片 URL');
-          }
-        } catch (error)
+        const transformedUrl = await transformUrl(this.bot, h.image(url).toString());
+        if (transformedUrl)
         {
           this.outDataOringin = ensureNewlineBefore(this.outDataOringin);
-          this.outDataOringin += '[图片转存异常]';
+          this.outDataOringin += `[${transformedUrl}#e]`;
           this.outDataOringin += '\n';
-          this.bot.loggerError(error);
+        } else
+        {
+          this.outDataOringin = ensureNewlineBefore(this.outDataOringin);
+          this.outDataOringin += '[图片转存失败]';
+          this.outDataOringin += '\n';
         }
         break;
       }

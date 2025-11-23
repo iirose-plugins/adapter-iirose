@@ -1,4 +1,5 @@
 import { Context, h } from 'koishi';
+import { decode as unescapeHtml } from './entities';
 
 import { clearMsg } from '../decoder/clearMsg';
 import { IIROSE_Bot } from '../bot/bot';
@@ -351,6 +352,41 @@ export async function getImageAsBase64(bot: IIROSE_Bot, url: string): Promise<st
   } catch (error)
   {
     bot.logger.warn(`获取或转换图片失败: ${url}`, error);
+    return null;
+  }
+}
+
+/**
+ * 安全地转换媒体元素URL。
+ * @param bot IIROSE_Bot 实例
+ * @param elementString 媒体元素的字符串表示，例如 `<img src="..."/>`
+ * @returns 转换后的 URL。如果转换失败或 assets 服务不可用，则返回 null。
+ */
+export async function transformUrl(bot: IIROSE_Bot, elementString: string): Promise<string | null>
+{
+  // 检查 assets 服务是否存在
+  if (!bot.ctx.assets)
+  {
+    bot.loggerWarn('Assets service is not available, skipping transformation.');
+    return null;
+  }
+
+  try
+  {
+    const transformedContent = await bot.ctx.assets.transform(elementString);
+    // 从转存后的内容中提取 URL
+    const urlMatch = transformedContent.match(/src="([^"]+)"/);
+    if (urlMatch && urlMatch[1])
+    {
+      return unescapeHtml(urlMatch[1]);
+    } else
+    {
+      bot.loggerWarn(`Could not extract URL from transformed content: ${transformedContent}`);
+      return null;
+    }
+  } catch (error)
+  {
+    bot.loggerError('Asset transformation failed:', error);
     return null;
   }
 }
