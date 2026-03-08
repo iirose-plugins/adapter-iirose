@@ -342,6 +342,9 @@ export async function getImageAsBase64(bot: IIROSE_Bot, url: string): Promise<st
 
   try
   {
+    // 检查 context 是否已被 dispose
+    if (bot.ctx[Context.current]?.state === 4) return null;
+
     const { data, type } = await bot.ctx.http.file(url);
 
     const buffer = Buffer.from(data);
@@ -351,6 +354,9 @@ export async function getImageAsBase64(bot: IIROSE_Bot, url: string): Promise<st
     return `data:${mimeType};base64,${base64}`;
   } catch (error)
   {
+    // 忽略 context disposed 错误
+    if (error?.message?.includes('context disposed')) return null;
+
     bot.logger.warn(`获取或转换图片失败: ${url}`, error);
     return null;
   }
@@ -364,6 +370,9 @@ export async function getImageAsBase64(bot: IIROSE_Bot, url: string): Promise<st
  */
 export async function transformUrl(bot: IIROSE_Bot, elementString: string): Promise<string | null>
 {
+  // 检查 context 是否已被 dispose
+  if (bot.ctx[Context.current]?.state === 4) return null;
+
   // 检查 assets 服务是否存在
   if (!bot.ctx.assets)
   {
@@ -386,6 +395,9 @@ export async function transformUrl(bot: IIROSE_Bot, elementString: string): Prom
     }
   } catch (error)
   {
+    // 忽略 context disposed 错误
+    if (error?.message?.includes('context disposed')) return null;
+
     bot.loggerError('Asset transformation failed:', error);
     return null;
   }

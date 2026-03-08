@@ -16,7 +16,7 @@ export interface Config
   onlyHangUpMode: boolean;
   debugMode: boolean;
   fullDebugMode: boolean;
-  maxRetries: number;
+  maxRetryInterval: number;
   deleteMessageDelay: number;
   sessionCacheSize: number;
   refreshTimeout: number;
@@ -74,7 +74,7 @@ export const Config: Schema<Config> = Schema.intersect([
   Schema.object({
     keepAliveEnable: Schema.boolean().default(true).description('是否开启心跳包'),
     timeout: Schema.number().min(1 * 1000).max(20 * 1000).step(500).default(5 * 1000).description('websocket超时的判定时限 (单位：毫秒)'),
-    maxRetries: Schema.number().min(1).max(100).default(5).description('连接失败时的最大重试次数。达到后不再重试。'),
+    maxRetryInterval: Schema.number().min(1).max(120).step(1).default(30).description('连接失败时的最大重试间隔时间（单位：分钟）。重试间隔会从5秒开始递增，最大到达此设置值。'),
   }).description('连接设置'),
 
   Schema.union([

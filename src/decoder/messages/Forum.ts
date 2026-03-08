@@ -1,19 +1,17 @@
-// src/decoder/messages/Forum.ts
-
 import { parseAvatar } from "../../utils/utils";
 
 export interface ForumPost
 {
-    name: string;
-    avatar: string;
-    type: string;
-    content: string;
-    // ... other fields based on your description
+  name: string;
+  avatar: string;
+  type: string;
+  content: string;
+  // ... other fields based on your description
 }
 
 export interface Forum
 {
-    posts: ForumPost[];
+  posts: ForumPost[];
 }
 
 /**
@@ -23,25 +21,25 @@ export interface Forum
  */
 export const parseForum = (message: string): Forum | null =>
 {
-    if (!message.startsWith(':-'))
-    {
-        return null;
-    }
+  if (!message.startsWith(':-'))
+  {
+    return null;
+  }
 
-    const content = message.substring(2);
-    if (!content) return { posts: [] };
+  const content = message.substring(2);
+  if (!content) return { posts: [] };
 
-    const posts: ForumPost[] = content.split('<').map(postString =>
-    {
-        const parts = postString.split('>');
-        return {
-            name: parts[0],
-            avatar: parseAvatar(parts[1]),
-            type: parts[2],
-            content: parts[3],
-            // ... and so on
-        };
-    });
+  const posts: ForumPost[] = content.split('<').map(postString =>
+  {
+    const parts = postString.split('>');
+    return {
+      name: parts[0],
+      avatar: parseAvatar(parts[1]),
+      type: parts[2],
+      content: parts[3],
+      // ... and so on
+    };
+  });
 
-    return { posts };
+  return { posts };
 };

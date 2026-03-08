@@ -1,5 +1,3 @@
-// src/decoder/messages/Balance.ts
-
 /**
  * 解析余额信息
  * @param message 消息
@@ -7,13 +5,13 @@
  */
 export const parseBalance = (message: string): number | null =>
 {
-    if (message.startsWith('`$'))
+  if (message.startsWith('`$'))
+  {
+    const balance = parseFloat(message.substring(2));
+    if (!isNaN(balance))
     {
-        const balance = parseFloat(message.substring(2));
-        if (!isNaN(balance))
-        {
-            return balance;
-        }
+      return balance;
     }
-    return null;
+  }
+  return null;
 };

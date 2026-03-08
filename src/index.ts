@@ -23,7 +23,7 @@ export * from './bot/bot';
 export * from './utils/ws';
 export * from './bot/event';
 
-declare module '@satorijs/core' {
+declare module 'koishi' {
   interface Events extends IIROSE.Events { }
 }
 

@@ -1,11 +1,10 @@
 {
   "name": "koishi-plugin-adapter-iirose",
   "description": "[IIROSE-蔷薇花园](https://iirose.com/)适配器",
-  "version": "0.12.5",
+  "version": "0.12.6",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
   "files": [
-    ".vscode",
     "data",
     "lib",
     "src"
@@ -54,5 +53,8 @@
   },
   "peerDependencies": {
     "koishi": "^4.18.8"
+  },
+  "devDependencies": {
+    "@koishijs/assets": "^1.1.2"
   }
 }

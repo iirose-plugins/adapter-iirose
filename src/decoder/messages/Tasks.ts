@@ -1,19 +1,17 @@
-// src/decoder/messages/Tasks.ts
-
 import { parseAvatar } from "../../utils/utils";
 
 export interface Task
 {
-    name: string;
-    avatar: string;
-    type: string;
-    content: string;
-    // ... other fields
+  name: string;
+  avatar: string;
+  type: string;
+  content: string;
+  // ... other fields
 }
 
 export interface Tasks
 {
-    tasks: Task[];
+  tasks: Task[];
 }
 
 /**
@@ -23,25 +21,25 @@ export interface Tasks
  */
 export const parseTasks = (message: string): Tasks | null =>
 {
-    if (!message.startsWith(':+'))
-    {
-        return null;
-    }
+  if (!message.startsWith(':+'))
+  {
+    return null;
+  }
 
-    const content = message.substring(2);
-    if (!content) return { tasks: [] };
+  const content = message.substring(2);
+  if (!content) return { tasks: [] };
 
-    const tasks: Task[] = content.split('<').map(taskString =>
-    {
-        const parts = taskString.split('>');
-        return {
-            name: parts[0],
-            avatar: parseAvatar(parts[1]),
-            type: parts[2],
-            content: parts[3],
-            // ... and so on
-        };
-    });
+  const tasks: Task[] = content.split('<').map(taskString =>
+  {
+    const parts = taskString.split('>');
+    return {
+      name: parts[0],
+      avatar: parseAvatar(parts[1]),
+      type: parts[2],
+      content: parts[3],
+      // ... and so on
+    };
+  });
 
-    return { tasks };
+  return { tasks };
 };
