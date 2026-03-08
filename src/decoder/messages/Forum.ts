@@ -6,7 +6,7 @@ export interface ForumPost
   avatar: string;
   type: string;
   content: string;
-  // ... other fields based on your description
+  // ... other fields
 }
 
 export interface Forum
