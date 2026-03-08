@@ -2,17 +2,29 @@ import { Context } from 'koishi';
 import { IIROSE_Bot } from '../../bot/bot';
 
 /**
- * 计算重试延迟时间（毫秒）
- * 第1次: 5秒, 第2次: 10秒, 第3次: 15秒...最大到配置的分钟数
+ * 重试延迟算法
  */
 export function calculateRetryDelay(retryCount: number, maxRetryIntervalMinutes: number): number
 {
-  const baseDelay = 5000; // 5秒
-  const increment = 5000; // 每次增加5秒
-  const maxDelay = maxRetryIntervalMinutes * 60 * 1000; // 转换为毫秒
+  const maxDelay = maxRetryIntervalMinutes * 60 * 1000;
 
-  const delay = baseDelay + (retryCount * increment);
-  return Math.min(delay, maxDelay);
+  if (retryCount < 3)
+  {
+    return 5 * 1000; // 5秒
+  }
+
+  if (retryCount < 6)
+  {
+    return Math.min(30 * 1000, maxDelay); // 30秒
+  }
+
+  if (retryCount < 9)
+  {
+    return Math.min(3 * 60 * 1000, maxDelay); // 3分钟
+  }
+
+  // 第10次起：使用配置的最大重试间隔
+  return maxDelay;
 }
 
 /**
