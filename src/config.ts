@@ -17,6 +17,7 @@ export interface Config
   debugMode: boolean;
   fullDebugMode: boolean;
   maxRetryInterval: number;
+  silentRetry: boolean;
   deleteMessageDelay: number;
   sessionCacheSize: number;
   refreshTimeout: number;
@@ -74,7 +75,8 @@ export const Config: Schema<Config> = Schema.intersect([
   Schema.object({
     keepAliveEnable: Schema.boolean().default(true).description('是否开启心跳包'),
     timeout: Schema.number().min(1 * 1000).max(20 * 1000).step(500).default(5 * 1000).description('websocket超时的判定时限 (单位：毫秒)'),
-    maxRetryInterval: Schema.number().min(1).max(120).step(1).default(30).description('连接失败时的最大重试间隔时间（单位：分钟）。重试间隔会从5秒开始递增，最大到达此设置值。'),
+    maxRetryInterval: Schema.number().min(1).max(120).step(1).default(30).description('连接失败时的最大重试间隔时间（单位：分钟）。重试间隔会从5秒开始递增，最大到达此设置值。<br>注意：iirose有时候夜间会关闭服务器，导致夜间数小时无法连接一直重试。'),
+    silentRetry: Schema.boolean().default(true).description('静默重试模式：开启后将不输出重试连接相关的日志，避免夜间长时间重试时刷屏。'),
   }).description('连接设置'),
 
   Schema.union([

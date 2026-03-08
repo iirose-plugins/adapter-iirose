@@ -4,6 +4,7 @@ import { LoginObj } from './types';
 import { prepareConnection, createLoginObj } from './connection';
 import { setupMessageHandler } from './message';
 import { startHeartbeat } from './heartbeat';
+import { IIROSE_WSsend } from './send';
 import { startEventsServer, stopEventsServer } from '../utils';
 
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
@@ -66,7 +67,6 @@ export class WsClient
       try
       {
         const loginPack = '*' + JSON.stringify(this.loginObj);
-        const { IIROSE_WSsend } = await import('./send');
         await IIROSE_WSsend(this.bot, loginPack);
 
         this.event = startEventsServer(this.bot);
@@ -275,7 +275,10 @@ export class WsClient
       return;
     }
 
-    this.bot.loggerWarn(`检测到连接丢失，准备重连 实例: ${this.bot.user?.id}`);
+    if (!this.bot.config.silentRetry)
+    {
+      this.bot.loggerWarn(`检测到连接丢失，准备重连 实例: ${this.bot.user?.id}`);
+    }
 
     this.isReconnecting = true;
     this.isStarting = false;
@@ -297,7 +300,10 @@ export class WsClient
 
       try
       {
-        this.bot.loggerInfo(`开始重连 实例: ${this.bot.user?.id}`);
+        if (!this.bot.config.silentRetry)
+        {
+          this.bot.loggerInfo(`开始重连 实例: ${this.bot.user?.id}`);
+        }
         this.bot.status = Universal.Status.CONNECT;
 
         await this.start();
@@ -307,7 +313,10 @@ export class WsClient
       {
         if (!this.disposed)
         {
-          this.bot.loggerError(`重连失败 实例: ${this.bot.user?.id}:`, error);
+          if (!this.bot.config.silentRetry)
+          {
+            this.bot.loggerError(`重连失败 实例: ${this.bot.user?.id}:`, error);
+          }
           this.isReconnecting = false;
           this.retryCount++;
 
@@ -325,7 +334,10 @@ export class WsClient
       }
     }, delayMs);
 
-    this.bot.loggerInfo(`将在${delaySec}秒后尝试重连...`);
+    if (!this.bot.config.silentRetry)
+    {
+      this.bot.loggerInfo(`将在${delaySec}秒后尝试重连...`);
+    }
   }
 
   /**
