@@ -2,7 +2,15 @@ import * as zlib from 'node:zlib';
 import { IIROSE_Bot } from '../../bot/bot';
 
 // WebSocket发送锁，确保消息发送时序正确
-let wsSendLock = Promise.resolve();
+let wsSendLock: Promise<void> = Promise.resolve();
+
+function toArrayBuffer(data: Uint8Array): ArrayBuffer
+{
+  const arrayBuffer = new ArrayBuffer(data.byteLength);
+  const view = new Uint8Array(arrayBuffer);
+  view.set(data);
+  return arrayBuffer;
+}
 
 export async function IIROSE_WSsend(bot: IIROSE_Bot, data: string): Promise<void>
 {
@@ -14,12 +22,13 @@ export async function IIROSE_WSsend(bot: IIROSE_Bot, data: string): Promise<void
     {
       if (!bot.socket)
       {
-        bot.loggerError("布豪！ !bot.socket !!! 请联系开发者");
+        bot.loggerError('布豪！ !bot.socket !!! 请联系开发者');
         return;
       }
-      if (bot.socket.readyState == 0)
+
+      if (bot.socket.readyState === 0)
       {
-        bot.loggerError("布豪！ bot.socket.readyState == 0 !!! 请联系开发者");
+        bot.loggerError('布豪！ bot.socket.readyState == 0 !!! 请联系开发者');
         return;
       }
 
@@ -30,18 +39,18 @@ export async function IIROSE_WSsend(bot: IIROSE_Bot, data: string): Promise<void
       }
 
       const buffer = Buffer.from(data);
-      const uintArray: Uint8Array = Uint8Array.from(buffer);
+      const uintArray = Uint8Array.from(buffer);
 
       if (uintArray.length > 256)
       {
         const deflatedData = zlib.gzipSync(data);
-        const deflatedArray: Uint8Array = new Uint8Array(deflatedData.length + 1);
+        const deflatedArray = new Uint8Array(deflatedData.length + 1);
         deflatedArray[0] = 1;
         deflatedArray.set(deflatedData, 1);
-        bot.socket.send(deflatedArray);
+        bot.socket.send(toArrayBuffer(deflatedArray));
       } else
       {
-        bot.socket.send(uintArray);
+        bot.socket.send(toArrayBuffer(uintArray));
       }
     } catch (error)
     {
