@@ -1,6 +1,6 @@
 import { h } from 'koishi';
 import { IIROSE_Bot } from '../../bot/bot';
-import { parseAvatar, writeWJ, getImageAsBase64 } from '../../utils/utils';
+import { parseAvatar, writeWJ } from '../../utils/utils';
 import { stockGet } from '../../encoder/system/consume/stock';
 import { bankGet } from '../../encoder/system/consume/bank';
 
@@ -219,7 +219,7 @@ export const bulkDataPacket = async (message: string, bot: IIROSE_Bot): Promise<
         if (self)
         {
           bot.user.name = self.name;
-          bot.user.avatar = await getImageAsBase64(bot, self.avatar);
+          bot.user.avatar = self.avatar;
           bot.selfId = self.id;
           bot.userId = self.id;
         } else

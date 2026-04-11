@@ -1,21 +1,18 @@
 {
-    "editor.formatOnSave": true,
-    "editor.defaultFormatter": null,
-    "[javascript]": {
-        "editor.defaultFormatter": "vscode.typescript-language-features"
-    },
-    "[typescript]": {
-        "editor.defaultFormatter": "vscode.typescript-language-features"
-    },
-    "prettier.enable": false,
-    "javascript.format.placeOpenBraceOnNewLineForControlBlocks": true,
-    "typescript.format.placeOpenBraceOnNewLineForControlBlocks": true,
-    "javascript.format.placeOpenBraceOnNewLineForFunctions": true,
-    "typescript.format.placeOpenBraceOnNewLineForFunctions": true,
-    "javascript.format.semicolons": "insert",
-    "typescript.format.semicolons": "insert",
-    "json.format.keepLines": true,
-    "files.eol": "\n",
-    "files.encoding": "utf8",
-    "editor.fontFamily": "Maple Mono NF CN Thin, Consolas, 'Courier New', monospace"
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": null,
+  "[javascript]": {
+    "editor.defaultFormatter": "vscode.typescript-language-features"
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "vscode.typescript-language-features"
+  },
+  "prettier.enable": false,
+  "js/ts.format.placeOpenBraceOnNewLineForControlBlocks": true,
+  "js/ts.format.placeOpenBraceOnNewLineForFunctions": true,
+  "js/ts.format.semicolons": "insert",
+  "json.format.keepLines": true,
+  "files.eol": "\n",
+  "files.encoding": "utf8",
+  "editor.fontFamily": "Maple Mono NF CN Thin, Consolas, 'Courier New', monospace"
 }

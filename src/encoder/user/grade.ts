@@ -6,7 +6,7 @@
  */
 export const gradeUser = (uid: string, score: number): string =>
 {
-    return `+_*${uid} ${score}`;
+  return `+_*${uid} ${score}`;
 };
 
 /**
@@ -16,5 +16,5 @@ export const gradeUser = (uid: string, score: number): string =>
  */
 export const cancelGradeUser = (uid: string): string =>
 {
-    return `+_*${uid} !`;
+  return `+_*${uid} !`;
 };

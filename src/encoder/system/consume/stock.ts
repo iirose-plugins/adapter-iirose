@@ -4,7 +4,7 @@
  */
 export const stockGet = (): string =>
 {
-    return '>#';
+  return '>#';
 };
 
 /**
@@ -14,7 +14,7 @@ export const stockGet = (): string =>
  */
 export const stockBuy = (quantity: number): string =>
 {
-    return `>$${quantity}`;
+  return `>$${quantity}`;
 };
 
 /**
@@ -24,5 +24,5 @@ export const stockBuy = (quantity: number): string =>
  */
 export const stockSell = (quantity: number): string =>
 {
-    return `>@${quantity}`;
+  return `>@${quantity}`;
 };

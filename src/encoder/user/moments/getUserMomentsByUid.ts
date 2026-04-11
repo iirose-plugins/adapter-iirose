@@ -5,6 +5,6 @@
  */
 export default function getUserMomentsByUid(uid: string): string
 {
-    // 获取用户动态
-    return `:*${uid}`;
+  // 获取用户动态
+  return `:*${uid}`;
 };

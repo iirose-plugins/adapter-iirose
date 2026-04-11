@@ -5,5 +5,5 @@
  */
 export default (roomId: string): string =>
 {
-    return `=^v$1${roomId}`;
+  return `=^v$1${roomId}`;
 };

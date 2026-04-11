@@ -98,7 +98,7 @@ export class IIROSE_BotMessageEncoder extends MessageEncoder<Context, IIROSE_Bot
         // 如果是 https 协议，直接使用
         if (url.startsWith('http'))
         {
-          // 直接使用 
+          // 直接使用
         } else
         {
           // 使用 assets 服务转存非 https 协议的资源
@@ -128,7 +128,7 @@ export class IIROSE_BotMessageEncoder extends MessageEncoder<Context, IIROSE_Bot
         // 如果是 https 协议，直接使用
         if (url.startsWith('http'))
         {
-          // 直接使用 
+          // 直接使用
         } else
         {
           // 使用 assets 服务转存非 https 协议的资源
