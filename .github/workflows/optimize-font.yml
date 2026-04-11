@@ -5,15 +5,15 @@ on:
     branches:
       - main
     paths:
-      - 'data/usage.html'
-  workflow_dispatch:  # 允许手动触发
-  
+      - "data/usage.html"
+  workflow_dispatch: # 允许手动触发
+
 jobs:
   optimize-font:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      
+
     steps:
       - name: Checkout main branch
         uses: actions/checkout@v3
@@ -30,7 +30,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.9'
+          python-version: "3.9"
 
       - name: Install dependencies
         run: |
@@ -62,20 +62,20 @@ jobs:
               """从HTML文件中提取所有文本内容"""
               with open(html_path, 'r', encoding='utf-8') as f:
                   content = f.read()
-              
+
               # 使用BeautifulSoup解析HTML并提取文本
               soup = BeautifulSoup(content, 'html.parser')
               text = soup.get_text()
-              
+
               # 也提取HTML标签中的属性值（如class, id等）
               attrs_text = ' '.join([str(attr) for tag in soup.find_all() for attr in tag.attrs.values() if isinstance(attr, str)])
-              
+
               # 合并所有文本
               all_text = text + ' ' + attrs_text
-              
+
               # 去除多余的空白字符
               all_text = re.sub(r'\s+', ' ', all_text)
-              
+
               return all_text
 
           def get_unique_characters(text):
@@ -88,7 +88,7 @@ jobs:
                   # 尝试不同的字体编号，直到找到可以处理的字体
                   font_loaded = False
                   font = None
-                  
+
                   for font_index in range(11):  # 尝试0-10的字体编号
                       try:
                           print(f"尝试加载字体编号: {font_index}")
@@ -99,7 +99,7 @@ jobs:
                       except Exception as e:
                           print(f"无法加载字体 {font_index}: {e}")
                           continue
-                  
+
                   if not font_loaded:
                       # 如果指定字体编号失败，尝试不指定编号
                       try:
@@ -108,30 +108,30 @@ jobs:
                           font_loaded = True
                       except Exception as e:
                           print(f"不指定字体编号也无法加载: {e}")
-                  
+
                   if not font_loaded:
                       raise Exception("无法加载字体文件")
-                  
+
                   # 创建子集化选项
                   options = Options()
                   options.notdef_outline = True
                   options.recalc_bounds = True
                   options.recalc_timestamp = True
                   options.canonical_order = True
-                  
+
                   # 创建子集化器
                   subsetter = Subsetter(options=options)
-                  
+
                   # 设置要保留的字符
                   subsetter.populate(text=''.join(characters))
-                  
+
                   # 执行子集化
                   subsetter.subset(font)
-                  
+
                   # 保存子集化后的字体
                   font.save(output_font_path)
                   font.close()
-                  
+
                   return True
               except Exception as e:
                   print(f"字体处理错误: {e}")
@@ -142,38 +142,38 @@ jobs:
               html_path = "data/usage.html"
               input_font_path = "temp/ZhuZiAWan-2.ttc"
               output_font_path = "../docs-repo/docs/public/fonts/ZhuZiAWan-2.ttc"
-              
+
               # 检查输入文件是否存在
               if not os.path.exists(html_path):
                   print(f"错误: HTML文件不存在: {html_path}")
                   return 1
-              
+
               if not os.path.exists(input_font_path):
                   print(f"错误: 字体文件不存在: {input_font_path}")
                   return 1
-              
+
               # 从HTML中提取文本
               print("正在从HTML文件中提取文本...")
               text_content = extract_text_from_html(html_path)
               print(f"提取的文本长度: {len(text_content)} 字符")
-              
+
               # 获取唯一字符
               unique_chars = get_unique_characters(text_content)
               print(f"唯一字符数量: {len(unique_chars)}")
-              
+
               # 显示前50个字符作为示例
               sample_chars = ''.join(unique_chars[:50])
               print(f"前50个字符: {sample_chars}")
-              
+
               # 确保输出目录存在
               os.makedirs(os.path.dirname(output_font_path), exist_ok=True)
-              
+
               # 子集化字体
               print("正在裁剪字体...")
               try:
                   if subset_font(input_font_path, output_font_path, unique_chars):
                       print(f"字体裁剪完成: {output_font_path}")
-                      
+
                       # 显示文件大小信息
                       original_size = os.path.getsize(input_font_path) / (1024 * 1024)  # MB
                       new_size = os.path.getsize(output_font_path) / (1024 * 1024)  # MB
