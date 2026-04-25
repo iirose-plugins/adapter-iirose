@@ -194,9 +194,9 @@ export async function prepareConnection(
       const delayMs = calculateRetryDelay(retryCount, maxRetryIntervalMinutes);
       const delaySec = Math.round(delayMs / 1000);
 
-      if (!bot.config.silentRetry)
+      if (!bot.config.silentRetry || bot.config.debugMode)
       {
-        bot.loggerWarn(`所有服务器都无法连接，将在${delaySec}秒后重试...`);
+        bot.loggerWarn(`所有服务器都无法连接，将在${delaySec}秒后重试... (重试次数: ${retryCount})`);
       }
 
       const cancelled = await waitWithCancel(ctx, bot, delayMs, disposed);

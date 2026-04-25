@@ -275,7 +275,7 @@ export class WsClient
       return;
     }
 
-    if (!this.bot.config.silentRetry)
+    if (!this.bot.config.silentRetry || this.bot.config.debugMode)
     {
       this.bot.loggerWarn(`检测到连接丢失，准备重连 实例: ${this.bot.user?.id}`);
     }
@@ -300,7 +300,7 @@ export class WsClient
 
       try
       {
-        if (!this.bot.config.silentRetry)
+        if (!this.bot.config.silentRetry || this.bot.config.debugMode)
         {
           this.bot.loggerInfo(`开始重连 实例: ${this.bot.user?.id}`);
         }
@@ -313,7 +313,7 @@ export class WsClient
       {
         if (!this.disposed)
         {
-          if (!this.bot.config.silentRetry)
+          if (!this.bot.config.silentRetry || this.bot.config.debugMode)
           {
             this.bot.loggerError(`重连失败 实例: ${this.bot.user?.id}:`, error);
           }
@@ -334,7 +334,7 @@ export class WsClient
       }
     }, delayMs);
 
-    if (!this.bot.config.silentRetry)
+    if (!this.bot.config.silentRetry || this.bot.config.debugMode)
     {
       this.bot.loggerInfo(`将在${delaySec}秒后尝试重连...`);
     }
