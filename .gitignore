@@ -16,3 +16,4 @@ tsconfig.tsbuildinfo
 *.sln
 .yarn
 docs
+tsconfig.tsbuildinfo
