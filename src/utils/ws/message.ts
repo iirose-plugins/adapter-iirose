@@ -12,17 +12,17 @@ export function setupMessageHandler(
   bot: IIROSE_Bot,
   loginObj: LoginObj,
   onFirstLogin: () => void
-)
+): () => void
 {
   if (!bot.socket)
   {
     bot.loggerError('WebSocket connection is not established.');
-    return;
+    return () => void 0;
   }
 
   let firstLogin = false;
 
-  bot.socket.addEventListener('message', async (event) =>
+  const handleMessage = async (event: MessageEvent) =>
   {
     const array = new Uint8Array(event.data);
 
@@ -192,5 +192,15 @@ export function setupMessageHandler(
     {
       await decoderMessage(funcObj, bot);
     }
-  });
+  };
+
+  bot.socket.addEventListener('message', handleMessage);
+
+  return () =>
+  {
+    if (bot.socket)
+    {
+      bot.socket.removeEventListener('message', handleMessage);
+    }
+  };
 }

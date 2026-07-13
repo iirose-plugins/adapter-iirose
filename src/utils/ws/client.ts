@@ -12,6 +12,10 @@ process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 export class WsClient
 {
   private event: (() => boolean)[] = [];
+  private messageCleanup: (() => void) | null = null;
+  private onOpen: ((event: Event) => void) | null = null;
+  private onError: ((event: Event) => void) | null = null;
+  private onClose: ((event: CloseEvent) => void) | null = null;
   private ctx: Context;
   private bot: IIROSE_Bot;
   private isStarting: boolean = false;
@@ -20,6 +24,7 @@ export class WsClient
 
   live: (() => void) | null = null;
   private reconnectTimer: (() => void) | null = null;
+  private loginTimeoutTimer: (() => void) | null = null;
   private retryCount: number = 0;
 
   loginObj: LoginObj;
@@ -38,6 +43,11 @@ export class WsClient
     this.disposed = false;
     this.live = null;
     this.reconnectTimer = null;
+    this.loginTimeoutTimer = null;
+    this.messageCleanup = null;
+    this.onOpen = null;
+    this.onError = null;
+    this.onClose = null;
     this.event = [];
   }
 
@@ -60,7 +70,7 @@ export class WsClient
     this.bot.socket = socket;
     this.loginObj = createLoginObj(this.bot);
 
-    socket.addEventListener('open', async () =>
+    this.onOpen = async () =>
     {
       this.bot.loggerInfo('正在登录中...');
 
@@ -68,6 +78,7 @@ export class WsClient
       {
         const loginPack = '*' + JSON.stringify(this.loginObj);
         await IIROSE_WSsend(this.bot, loginPack);
+        this.startLoginTimeout();
 
         this.event = startEventsServer(this.bot);
 
@@ -89,7 +100,9 @@ export class WsClient
           socket.close();
         }
       }
-    });
+    };
+
+    socket.addEventListener('open', this.onOpen);
 
     return socket;
   }
@@ -103,8 +116,9 @@ export class WsClient
     this.loginSuccess = false;
     this.isReconnecting = false;
 
-    setupMessageHandler(this.bot, this.loginObj, () =>
+    this.messageCleanup = setupMessageHandler(this.bot, this.loginObj, () =>
     {
+      this.clearLoginTimeout();
       this.firstLogin = true;
       this.loginSuccess = true;
     });
@@ -181,6 +195,8 @@ export class WsClient
       this.reconnectTimer = null;
     }
 
+    this.clearLoginTimeout();
+
     if (this.event.length > 0)
     {
       stopEventsServer(this.event);
@@ -189,10 +205,26 @@ export class WsClient
 
     if (this.bot.socket)
     {
-      this.bot.socket.removeEventListener('open', () => { });
-      this.bot.socket.removeEventListener('message', () => { });
-      this.bot.socket.removeEventListener('close', () => { });
-      this.bot.socket.removeEventListener('error', () => { });
+      if (this.onOpen)
+      {
+        this.bot.socket.removeEventListener('open', this.onOpen);
+        this.onOpen = null;
+      }
+      if (this.onError)
+      {
+        this.bot.socket.removeEventListener('error', this.onError);
+        this.onError = null;
+      }
+      if (this.onClose)
+      {
+        this.bot.socket.removeEventListener('close', this.onClose);
+        this.onClose = null;
+      }
+      if (this.messageCleanup)
+      {
+        this.messageCleanup();
+        this.messageCleanup = null;
+      }
 
       if (this.bot.socket.readyState === 1 || this.bot.socket.readyState === 0)
       {
@@ -209,16 +241,16 @@ export class WsClient
   {
     if (!this.bot.socket) return;
 
-    this.bot.socket.addEventListener('error', (error) =>
+    this.onError = (error) =>
     {
       this.bot.loggerError('WebSocket 连接错误:', error);
       if (!this.disposed)
       {
         this.handleConnectionLoss();
       }
-    });
+    };
 
-    this.bot.socket.addEventListener('close', async (event) =>
+    this.onClose = async (event) =>
     {
       const code = event.code;
 
@@ -244,7 +276,10 @@ export class WsClient
 
       this.bot.loggerWarn(`websocket异常关闭，代码: ${code}`);
       this.handleConnectionLoss();
-    });
+    };
+
+    this.bot.socket.addEventListener('error', this.onError);
+    this.bot.socket.addEventListener('close', this.onClose);
   }
 
   /**
@@ -263,6 +298,48 @@ export class WsClient
       () => this.disposed,
       () => this.handleConnectionLoss()
     );
+  }
+
+  /**
+   * 启动登录超时判断
+   */
+  private startLoginTimeout()
+  {
+    this.clearLoginTimeout();
+
+    if (this.disposed || this.loginSuccess)
+    {
+      return;
+    }
+
+    const timeoutMs = this.bot.config.loginRequestTimeout * 1000;
+    this.loginTimeoutTimer = this.ctx.setTimeout(() =>
+    {
+      this.loginTimeoutTimer = null;
+
+      if (this.disposed || this.loginSuccess)
+      {
+        return;
+      }
+
+      if (!this.bot.config.silentRetry || this.bot.config.debugMode)
+      {
+        this.bot.loggerWarn(`登录请求超时，${this.bot.config.loginRequestTimeout}秒内没有响应，准备重试`);
+      }
+      this.handleConnectionLoss();
+    }, timeoutMs);
+  }
+
+  /**
+   * 清除登录超时判断
+   */
+  private clearLoginTimeout()
+  {
+    if (this.loginTimeoutTimer)
+    {
+      this.loginTimeoutTimer();
+      this.loginTimeoutTimer = null;
+    }
   }
 
   /**
@@ -380,6 +457,13 @@ export class WsClient
       this.reconnectTimer = null;
     }
 
+    this.clearLoginTimeout();
+    if (this.messageCleanup)
+    {
+      this.messageCleanup();
+      this.messageCleanup = null;
+    }
+
     if (this.event.length > 0)
     {
       stopEventsServer(this.event);
@@ -388,10 +472,21 @@ export class WsClient
 
     if (this.bot.socket)
     {
-      this.bot.socket.removeEventListener('open', () => { });
-      this.bot.socket.removeEventListener('message', () => { });
-      this.bot.socket.removeEventListener('close', () => { });
-      this.bot.socket.removeEventListener('error', () => { });
+      if (this.onOpen)
+      {
+        this.bot.socket.removeEventListener('open', this.onOpen);
+        this.onOpen = null;
+      }
+      if (this.onError)
+      {
+        this.bot.socket.removeEventListener('error', this.onError);
+        this.onError = null;
+      }
+      if (this.onClose)
+      {
+        this.bot.socket.removeEventListener('close', this.onClose);
+        this.onClose = null;
+      }
 
       if (this.bot.socket.readyState === 1 || this.bot.socket.readyState === 0)
       {
