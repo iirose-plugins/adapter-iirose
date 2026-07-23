@@ -5,6 +5,11 @@ import { getMd5Password, md5 } from '../password';
 import { calculateRetryDelay, waitWithCancel } from './retry';
 import { IIROSE_WSsend } from './send';
 
+function isDisposingError(error: unknown): boolean
+{
+  return error instanceof Error && error.message.includes('插件正在停用');
+}
+
 /**
  * 测试服务器延迟
  */
@@ -186,6 +191,11 @@ export async function prepareConnection(
 
     } catch (error)
     {
+      if (disposed() || isDisposingError(error))
+      {
+        throw error;
+      }
+
       bot.loggerWarn('服务器测试过程中出现错误:', error);
     }
 
