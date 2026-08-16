@@ -19,6 +19,13 @@
 
   const loggerGlobal = unsafeWindow.IIROSE_WS_LOGGER = unsafeWindow.IIROSE_WS_LOGGER || {};
 
+  function getLogTimestamp()
+  {
+    const date = new Date();
+    const pad = (value) => String(value).padStart(2, '0');
+    return `${date.getFullYear()}.${date.getMonth() + 1}.${date.getDate()} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  }
+
   function processArrayBuffer(arrayBuffer, callback)
   {
     const view = new Uint8Array(arrayBuffer);
@@ -138,7 +145,7 @@
           {
             if (text.length > 0)
             {
-              console.log("■■■ IIROSE Websocket ■■■ 发送:\n", text);
+              console.log(`■■■ IIROSE Websocket ■■■ [${getLogTimestamp()}]发送:\n`, text);
             }
           });
         });
@@ -153,12 +160,12 @@
           {
             if (text.length > 0)
             {
-              console.log("■■■ IIROSE Websocket ■■■ 收到消息:\n", text);
+              console.log(`■■■ IIROSE Websocket ■■■ [${getLogTimestamp()}]收到消息:\n`, text);
             }
           });
         } else
         {
-          console.log("■■■ IIROSE Websocket ■■■ 收到消息 (原始事件):\n", event);
+          console.log(`■■■ IIROSE Websocket ■■■ [${getLogTimestamp()}]收到消息 (原始事件):\n`, event);
         }
       });
 
@@ -224,7 +231,7 @@
       console.warn("■■■ IIROSE Websocket ■■■ WebSocket 未打开 (readyState: " + (loggerGlobal.rawSocket ? loggerGlobal.rawSocket.readyState : 'N/A') + ")。消息可能不会被发送。");
     }
 
-    console.log(`■■■ IIROSE Websocket ■■■ 手动发送: \n${message}`);
+    console.log(`■■■ IIROSE Websocket ■■■ [${getLogTimestamp()}]手动发送: \n${message}`);
     loggerGlobal.originalSend(message);
   };
 
