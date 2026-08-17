@@ -21,6 +21,7 @@ export const usage = readFileSync(join(__dirname, "./../data/usage.html"), 'utf-
 
 export * from './bot/bot';
 export * from './utils/ws';
+export * from './utils/changelog';
 export * from './bot/event';
 
 declare module 'koishi' {

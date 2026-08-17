@@ -55,6 +55,7 @@ import getCompletedOrdersFunction from '../encoder/system/store/personal/orders/
 import getAfterSaleOrdersFunction from '../encoder/system/store/personal/orders/getAfterSaleOrders';
 import getMusicListFunction, { parseMusicList, MediaListItem } from '../encoder/system/media/getMusicList';
 import { getFollowAndFansPacket, parseFollowAndFans, FollowList } from '../encoder/user/follow/followList';
+import { CHANGELOG_URL, ChangelogData, parseChangelog } from '../utils/changelog';
 import getPendingReviewOrdersFunction from '../encoder/system/store/personal/orders/getPendingReviewOrders';
 import getPendingReceiptOrdersFunction from '../encoder/system/store/personal/orders/getPendingReceiptOrders';
 import getPendingPaymentOrdersFunction from '../encoder/system/store/personal/orders/getPendingPaymentOrders';
@@ -605,6 +606,22 @@ export class Internal
     }
     return null;
   }
+
+  /**
+   * 获取 IIROSE 版本更新日志
+   */
+  async getChangelog(): Promise<ChangelogData | null>
+  {
+    try
+    {
+      const raw = await this.bot.ctx.http.get<string>(CHANGELOG_URL, { responseType: 'text' });
+      return parseChangelog(raw);
+    } catch (error)
+    {
+      this.bot.loggerError('获取版本更新日志失败:', error);
+      return null;
+    }
+  }
 }
 
 export interface InternalType
@@ -661,4 +678,5 @@ export interface InternalType
   getBalance(): Promise<number | null>;
   summonDice(diceId: number): void;
   getUserProfileByName(username: string): Promise<UserProfileByName | null>;
+  getChangelog(): Promise<ChangelogData | null>;
 }
