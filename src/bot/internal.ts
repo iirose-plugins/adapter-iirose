@@ -17,6 +17,7 @@ import { Store, parseStore } from '../decoder/messages/Store';
 import { Tasks, parseTasks } from '../decoder/messages/Tasks';
 import cutOneFunction from '../encoder/admin/media/media_cut';
 import broadcastFunction from '../encoder/messages/broadcast';
+import noticeFunction from '../encoder/admin/manage/notice';
 import { findUserIdByName, readJsonData } from '../utils/utils';
 import getTasksFunction from '../encoder/system/tasks/getTasks';
 import getForumFunction from '../encoder/system/forum/getForum';
@@ -141,6 +142,15 @@ export class Internal
   broadcast(broadcast: eventType.broadcast)
   {
     IIROSE_WSsend(this.bot, broadcastFunction(broadcast.message, broadcast.color));
+  }
+
+  /**
+   * 发送当前房间公告
+   * @param notice 公告内容
+   */
+  sendRoomNotice(notice: string)
+  {
+    IIROSE_WSsend(this.bot, noticeFunction(notice));
   }
 
   makeMusic(musicOrigin: eventType.musicOrigin)
@@ -606,6 +616,7 @@ export interface InternalType
   setMaxUser(setMaxUser?: eventType.setMaxUser): void;
   whiteList(whiteList: eventType.whiteList): void;
   broadcast(broadcast: eventType.broadcast): void;
+  sendRoomNotice(notice: string): void;
   makeMusic(musicOrigin: eventType.musicOrigin): void;
   stockBuy(numberData: number): void;
   stockSell(numberData: number): void;

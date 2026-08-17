@@ -1,10 +1,11 @@
 import { Fragment, Session } from 'koishi';
-import { MailboxMessageData } from '../decoder/messages/MailboxMessage';
+import type { MailboxMessageData } from '../decoder/messages/MailboxMessage';
 import { BroadcastMessage } from '../decoder/messages/BroadcastMessage';
 import { Stock } from '../decoder/messages/Stock';
 import { BankCallback } from '../decoder/messages/BankCallback';
 import { MessageType } from '../decoder';
 import { IIROSE_Bot } from './bot';
+export type { MailboxMessageData };
 
 export interface kickData
 {
@@ -108,6 +109,7 @@ export interface Events
   'iirose/guild-member-switchRoom'(session: Session, data: MessageType['switchRoom']): void;
   'iirose/music-play'(session: Session, data: MessageType['music']): void;
   'iirose/selfMove'(session: Session, data: MessageType['selfMove']): void;
+  'iirose/mailbox'(session: Session, data: MailboxMessageData): void;
   'iirose/roomNotice'(session: Session, data: Extract<MailboxMessageData, { type: 'roomNotice'; }>): void;
   'iirose/follower'(session: Session, data: Extract<MailboxMessageData, { type: 'follower'; }>): void;
   'iirose/like'(session: Session, data: Extract<MailboxMessageData, { type: 'like'; }>): void;

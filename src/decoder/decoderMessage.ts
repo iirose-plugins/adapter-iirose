@@ -430,6 +430,8 @@ export const decoderMessage = async (obj: MessageType, bot: IIROSE_Bot) =>
         });
 
         bot.fulllogInfo(`iirose/${data.type}`, session, data);
+        // 先下发统一的信箱事件，方便插件统一监听
+        bot.ctx.emit('iirose/mailbox', session, data);
 
         switch (data.type)
         {
