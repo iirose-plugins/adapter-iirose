@@ -5,6 +5,7 @@ import { Stock } from '../decoder/messages/Stock';
 import { BankCallback } from '../decoder/messages/BankCallback';
 import { MessageType } from '../decoder';
 import type { RoomState } from '../decoder/messages/BulkDataPacket';
+import type { MediaWhitelistEntry, MediaWhitelistEvent } from '../decoder/messages/MediaWhitelist';
 import { IIROSE_Bot } from './bot';
 export type { MailboxMessageData };
 
@@ -119,6 +120,8 @@ export interface Events
   'iirose/broadcast'(session: Session, data: BroadcastMessage): void;
   'iirose/room-state'(state: RoomState): void;
   'iirose/broadcast-ack'(remaining: number): void;
+  'iirose/media-whitelist-list'(data: MediaWhitelistEntry[]): void;
+  'iirose/media-whitelist-event'(data: MediaWhitelistEvent): void;
   'iirose/stock-update'(stockData: Stock): void;
   'iirose/bank-update'(bankData: BankCallback): void;
 }

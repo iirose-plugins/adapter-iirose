@@ -24,6 +24,7 @@ export * from './utils/ws';
 export * from './utils/changelog';
 export * from './bot/event';
 export type { RoomState } from './decoder/messages/BulkDataPacket';
+export type { MediaWhitelistEntry, MediaWhitelistEvent } from './decoder/messages/MediaWhitelist';
 
 declare module 'koishi' {
   interface Events extends IIROSE.Events { }

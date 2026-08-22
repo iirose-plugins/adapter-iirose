@@ -8,6 +8,9 @@ import Dislike from '../encoder/user/like/Dislike';
 import Unfollow from '../encoder/user/follow/Unfollow';
 import mediaCard from '../encoder/messages/media_card';
 import mediaData from '../encoder/messages/media_data';
+import mediaOperationFunction from '../encoder/admin/media/media_operation';
+import mediaExchangeFunction from '../encoder/admin/media/media_exchange';
+import mediaGotoFunction from '../encoder/admin/media/media_goto';
 import kickFunction from '../encoder/admin/manage/kick';
 import { parseBalance } from '../decoder/messages/Balance';
 import getBalanceFunction from '../encoder/user/getBalance';
@@ -24,6 +27,7 @@ import getForumFunction from '../encoder/system/forum/getForum';
 import getStoreFunction from '../encoder/system/store/getStore';
 import cutAllFunction from '../encoder/admin/media/media_clear';
 import whiteListFunction from '../encoder/admin/manage/whiteList';
+import { mediaWhitelistQuery, mediaWhitelistAdd, mediaWhitelistRemove, mediaWhitelistClear } from '../encoder/admin/manage/mediaWhitelist';
 import { gradeUser, cancelGradeUser } from '../encoder/user/grade';
 import getMomentsFunction from '../encoder/user/moments/getMoments';
 import { Moments, parseMoments } from '../decoder/messages/Moments';
@@ -61,6 +65,7 @@ import getPendingReceiptOrdersFunction from '../encoder/system/store/personal/or
 import getPendingPaymentOrdersFunction from '../encoder/system/store/personal/orders/getPendingPaymentOrders';
 import getPendingConfirmationOrdersFunction from '../encoder/system/store/personal/orders/getPendingConfirmationOrders';
 import type { RoomState } from '../decoder/messages/BulkDataPacket';
+import { parseMediaWhitelistList, type MediaWhitelistEntry } from '../decoder/messages/MediaWhitelist';
 
 const DEFAULT_BROADCAST_LIMIT = 10;
 const BROADCAST_COUNT_FILE = 'wsdata/broadcastCount.json';
@@ -134,6 +139,61 @@ export class Internal
     IIROSE_WSsend(this.bot, cutAllFunction());
   }
 
+  /**
+   * 快进或快退当前媒体
+   * @param operation '<' 快退, '>' 快进
+   * @param time 时间，例如 "1s"、"1m"、"1h"
+   * @returns 移动后的播放位置秒数，失败或超时返回 null
+   */
+  async seekMedia(operation: '<' | '>', time: string): Promise<number | null>
+  {
+    const response = await this.sendAndWaitForResponsePrefixes(mediaOperationFunction(operation, time), [',', '_~P']);
+    if (!response || response === '_~P') return null;
+    const position = Number(response.slice(1));
+    return Number.isFinite(position) ? position : null;
+  }
+
+  /**
+   * 跳转到指定播放位置
+   * @param time 时间，例如 "1:30" 或秒数
+   * @returns 移动后的播放位置秒数，失败或超时返回 null
+   */
+  async jumpMedia(time: string): Promise<number | null>
+  {
+    const response = await this.sendAndWaitForResponsePrefixes(mediaGotoFunction(time), [',', '_~P']);
+    if (!response || response === '_~P') return null;
+    const position = Number(response.slice(1));
+    return Number.isFinite(position) ? position : null;
+  }
+
+  /**
+   * 交换歌单中两首媒体的位置
+   * @param id1 媒体ID1，格式为 `index_length`
+   * @param id2 媒体ID2，格式为 `index_length`
+   */
+  exchangeMedia(id1: string, id2: string)
+  {
+    IIROSE_WSsend(this.bot, mediaExchangeFunction(id1, id2));
+  }
+
+  /**
+   * 切到下一首媒体
+   * @returns 是否收到成功回执；当前无媒体时返回 false
+   */
+  async nextMedia(): Promise<boolean>
+  {
+    const response = await this.sendAndWaitForResponsePrefixes(cutOneFunction(), [',', '_~P']);
+    return response === ',';
+  }
+
+  /**
+   * 清空当前房间媒体
+   */
+  clearMedia()
+  {
+    IIROSE_WSsend(this.bot, cutAllFunction());
+  }
+
   setMaxUser(setMaxUser?: eventType.setMaxUser)
   {
     (setMaxUser && setMaxUser.hasOwnProperty('maxMember')) ? IIROSE_WSsend(this.bot, setMaxUserFunction(setMaxUser.maxMember)) : IIROSE_WSsend(this.bot, setMaxUserFunction());
@@ -142,6 +202,47 @@ export class Internal
   whiteList(whiteList: eventType.whiteList)
   {
     (whiteList && whiteList.hasOwnProperty('intro')) ? IIROSE_WSsend(this.bot, whiteListFunction(whiteList.username, whiteList.time, whiteList.intro)) : IIROSE_WSsend(this.bot, whiteListFunction(whiteList.username, whiteList.time));
+  }
+
+  /**
+   * 查询当前房间“限制发言&点播”白名单
+   */
+  async getMediaWhitelist(): Promise<MediaWhitelistEntry[] | null>
+  {
+    const response = await this.sendAndWaitForResponsePrefixes(mediaWhitelistQuery(), ['a2']);
+    if (!response) return null;
+    return parseMediaWhitelistList(response) ?? [];
+  }
+
+  /**
+   * 添加“限制发言&点播”白名单
+   * @param username 用户名
+   * @param duration 持续时间，例如 "1h"、"1d"
+   * @param intro 备注
+   */
+  async addMediaWhitelist(username: string, duration: string, intro: string): Promise<boolean>
+  {
+    const response = await this.sendAndWaitForResponsePrefixes(mediaWhitelistAdd(username, duration, intro), ['_~F', '_~X', 'qw']);
+    return response !== null;
+  }
+
+  /**
+   * 移除“限制发言&点播”白名单
+   * @param uid 用户UID
+   */
+  async removeMediaWhitelist(uid: string): Promise<boolean>
+  {
+    const response = await this.sendAndWaitForResponsePrefixes(mediaWhitelistRemove(uid), ['qW', '_~F', '_~X']);
+    return response !== null;
+  }
+
+  /**
+   * 清空当前房间“限制发言&点播”白名单
+   */
+  async clearMediaWhitelist(): Promise<boolean>
+  {
+    const response = await this.sendAndWaitForResponsePrefixes(mediaWhitelistClear(), ['qW', '_~F', '_~X']);
+    return response !== null;
   }
 
   broadcast(broadcast: eventType.broadcast)
@@ -185,6 +286,30 @@ export class Internal
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   }
 
+  private async sendAndWaitForResponsePrefixes(payload: string, prefixes: string[], timeout?: number): Promise<string | null>
+  {
+    const effectiveTimeout = timeout ?? this.bot.config.timeout;
+
+    return new Promise((resolve) =>
+    {
+      const dispose = this.bot.ctx.setTimeout(() =>
+      {
+        prefixes.forEach(prefix => this.bot.responseListeners.delete(prefix));
+        resolve(null);
+      }, effectiveTimeout);
+
+      const listener = (data: string) =>
+      {
+        dispose();
+        prefixes.forEach(prefix => this.bot.responseListeners.delete(prefix));
+        resolve(data);
+      };
+
+      prefixes.forEach(prefix => this.bot.responseListeners.set(prefix, { listener, stopPropagation: true }));
+      IIROSE_WSsend(this.bot, payload);
+    });
+  }
+
   /**
    * 发送当前房间公告
    * @param notice 公告内容
@@ -196,10 +321,19 @@ export class Internal
 
   makeMusic(musicOrigin: eventType.musicOrigin)
   {
+    this.requestMusic(musicOrigin);
+  }
+
+  /**
+   * 点歌
+   * @param musicOrigin 音乐信息，需要调用方先解析出直链和歌词
+   */
+  requestMusic(musicOrigin: eventType.musicOrigin)
+  {
     const { type, name, signer, cover, link, url, duration, bitRate, color, lyrics, origin } = musicOrigin;
+    IIROSE_WSsend(this.bot, mediaData(type, name, signer, cover, link, url, duration, lyrics, origin));
     const mediaCardResult = mediaCard(type, name, signer, cover, color, duration, bitRate, origin);
     IIROSE_WSsend(this.bot, mediaCardResult.data);
-    IIROSE_WSsend(this.bot, mediaData(type, name, signer, cover, link, url, duration, lyrics, origin));
   }
 
   stockBuy(numberData: number)
@@ -446,7 +580,7 @@ export class Internal
    */
   async getMusicList(): Promise<MediaListItem[] | null>
   {
-    const response = await this.bot.sendAndWaitForResponse(getMusicListFunction(), '~', true);
+    const response = await this.bot.sendAndWaitForResponse(getMusicListFunction(), 'a1', true);
     if (response)
     {
       return parseMusicList(response);
@@ -679,13 +813,23 @@ export interface InternalType
   kick(kickData: eventType.kickData): void;
   cutOne(cutOne?: eventType.cutOne): void;
   cutAll(): void;
+  seekMedia(operation: '<' | '>', time: string): Promise<number | null>;
+  jumpMedia(time: string): Promise<number | null>;
+  exchangeMedia(id1: string, id2: string): void;
+  nextMedia(): Promise<boolean>;
+  clearMedia(): void;
   setMaxUser(setMaxUser?: eventType.setMaxUser): void;
   whiteList(whiteList: eventType.whiteList): void;
+  getMediaWhitelist(): Promise<MediaWhitelistEntry[] | null>;
+  addMediaWhitelist(username: string, duration: string, intro: string): Promise<boolean>;
+  removeMediaWhitelist(uid: string): Promise<boolean>;
+  clearMediaWhitelist(): Promise<boolean>;
   broadcast(broadcast: eventType.broadcast): void;
   getBroadcastRemaining(): Promise<number>;
   recordBroadcastAck(): Promise<number>;
   sendRoomNotice(notice: string): void;
   makeMusic(musicOrigin: eventType.musicOrigin): void;
+  requestMusic(musicOrigin: eventType.musicOrigin): void;
   stockBuy(numberData: number): void;
   stockSell(numberData: number): void;
   stockGet(): Promise<Stock | null>;

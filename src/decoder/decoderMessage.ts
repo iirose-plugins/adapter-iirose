@@ -553,6 +553,22 @@ export const decoderMessage = async (obj: MessageType, bot: IIROSE_Bot) =>
         break;
       }
 
+      case 'mediaWhitelistList': {
+        const data = obj.mediaWhitelistList;
+        if (!data) break;
+        bot.fulllogInfo('iirose/media-whitelist-list', data);
+        bot.ctx.emit('iirose/media-whitelist-list', data);
+        break;
+      }
+
+      case 'mediaWhitelistEvent': {
+        const data = obj.mediaWhitelistEvent;
+        if (!data) break;
+        bot.fulllogInfo('iirose/media-whitelist-event', data);
+        bot.ctx.emit('iirose/media-whitelist-event', data);
+        break;
+      }
+
       default: {
         break;
       }

@@ -8,6 +8,7 @@ import { publicMessage, PublicMessage } from './messages/PublicMessage';
 import { bulkDataPacket, UserList } from './messages/BulkDataPacket';
 import type { RoomState } from './messages/BulkDataPacket';
 import { musicMessage, MusicMessage } from './messages/MusicMessage';
+import { MediaWhitelistEntry, MediaWhitelistEvent, parseMediaWhitelistList, parseMediaWhitelistEvent } from './messages/MediaWhitelist';
 import { bankCallback, BankCallback } from './messages/BankCallback';
 import { manyMessage, ManyMessage } from './messages/ManyMessage';
 import { switchRoom, SwitchRoom } from './messages/SwitchRoom';
@@ -38,6 +39,8 @@ export const decoder = async (bot: IIROSE_Bot, msg: string): Promise<MessageType
   len.messageDeleted = MessageDeleted(bot, msg);
   len.broadcastMessage = broadcastMessage(msg);
   len.broadcastAck = broadcastAck(msg);
+  len.mediaWhitelistList = parseMediaWhitelistList(msg);
+  len.mediaWhitelistEvent = parseMediaWhitelistEvent(msg);
 
   const newObj = {};
   for (const key in len)
@@ -87,4 +90,6 @@ export interface MessageType
   messageDeleted?: MessageDeletedData;
   broadcastMessage?: BroadcastMessage;
   broadcastAck?: boolean;
+  mediaWhitelistList?: MediaWhitelistEntry[];
+  mediaWhitelistEvent?: MediaWhitelistEvent;
 }
