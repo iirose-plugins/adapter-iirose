@@ -35,20 +35,22 @@ export const parseSelfInfo = (message: string): SelfInfo | null =>
 
   if (parts.length >= 14)
   {
+    // 新格式以 $?1" 开头，split 后首位是空串；旧格式没有 1，首位直接是用户名
+    const offset = parts[0] === '' ? 1 : 0;
     return {
-      username: parts[0],
-      email: parts[1],
-      lastName: parts[2],
-      firstName: parts[3],
-      birthday: parts[4],
-      onlineStatus: parts[5],
-      address: parts[6],
-      personalWebsite: parts[7],
-      hobbies: parts[8],
-      friends: parts[9],
-      uid: parts[10],
-      avatar: parseAvatar(parts[11]),
-      currentRoom: parts[12],
+      username: parts[offset] || '',
+      email: (parts[offset + 1] || '').trim(),
+      lastName: parts[offset + 2] || '',
+      firstName: parts[offset + 3] || '',
+      birthday: parts[offset + 4] || '',
+      onlineStatus: parts[offset + 5] || '',
+      address: parts[offset + 6] || '',
+      personalWebsite: parts[offset + 7] || '',
+      hobbies: parts[offset + 8] || '',
+      friends: parts[offset + 9] || '',
+      uid: parts[offset + 14] || '',
+      avatar: parseAvatar(parts[offset + 13] || ''),
+      currentRoom: parts[offset + 15] || '',
       phone: parts[parts.length - 1].split('<')[0], // a bit tricky
     };
   }

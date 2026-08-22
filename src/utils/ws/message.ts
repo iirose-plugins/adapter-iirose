@@ -172,6 +172,7 @@ export function setupMessageHandler(
         bot.fulllogInfo('login-added', session);
 
         onFirstLogin();
+        void bot.internal.getSelfInfo();
       }
     }
 

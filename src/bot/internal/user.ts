@@ -1,7 +1,7 @@
 import type { Internal } from './base';
 import { Universal } from 'koishi';
 import { IIROSE_WSsend } from '../../utils/ws';
-import { findUserIdByName, readJsonData } from '../../utils/utils';
+import { findUserIdByName, readJsonData, writeWJ } from '../../utils/utils';
 import Like from '../../encoder/user/like/Like';
 import Dislike from '../../encoder/user/like/Dislike';
 import Follow from '../../encoder/user/follow/Follow';
@@ -94,11 +94,42 @@ export const userMethods = {
   async getSelfInfo(this: Internal): Promise<SelfInfo | null>
   {
     const response = await this.bot.sendAndWaitForResponse(getSelfInfoFunction(), '$?', true);
-    if (response)
+    if (!response) return null;
+
+    const info = parseSelfInfo(response);
+    if (!info) return null;
+
+    this.bot.user.name = info.username || this.bot.user.name;
+    this.bot.user.avatar = info.avatar || this.bot.user.avatar;
+    if (info.uid)
     {
-      return parseSelfInfo(response);
+      this.bot.selfId = info.uid;
+      this.bot.userId = info.uid;
     }
-    return null;
+
+    const userlist = await readJsonData(this.bot, 'wsdata/userlist.json');
+    if (Array.isArray(userlist))
+    {
+      const index = userlist.findIndex((user: { uid?: string }) => user?.uid === info.uid);
+      const selfEntry = {
+        avatar: info.avatar,
+        username: info.username,
+        color: index >= 0 ? userlist[index].color : this.bot.config.color,
+        room: index >= 0 ? userlist[index].room : this.bot.wsClient?.loginObj?.r || this.bot.config.roomId,
+        uid: info.uid,
+      };
+      if (index >= 0)
+      {
+        userlist[index] = selfEntry;
+      } else
+      {
+        userlist.push(selfEntry);
+      }
+      await writeWJ(this.bot, 'wsdata/userlist.json', userlist);
+    }
+
+    this.bot.logInfo('机器人自身信息已更新', info);
+    return info;
   },
 
   async updateSelfInfo(this: Internal, profileData: ProfileData): Promise<boolean>
