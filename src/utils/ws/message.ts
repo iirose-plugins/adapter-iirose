@@ -152,6 +152,14 @@ export function setupMessageHandler(
         await sleep(1000);
         bot.ctx.scope.dispose();
         return;
+      } else if (message.startsWith(`%*"6`))
+      {
+        bot.loggerError(`登录失败：房间不存在或无法进入，请检查 roomId，当前房间ID：${loginObj.r}`);
+        bot.status = Universal.Status.OFFLINE;
+        await bot.stop();
+        await sleep(1000);
+        bot.ctx.scope.dispose();
+        return;
       } else if (message.startsWith(`%`))
       {
         bot.logInfo(loginObj);
@@ -172,7 +180,10 @@ export function setupMessageHandler(
         bot.fulllogInfo('login-added', session);
 
         onFirstLogin();
-        void bot.internal.getSelfInfo();
+        const selfName = loginObj.n || bot.config.usename;
+        void bot.internal.getUserProfileByName(selfName)
+          .then(() => bot.internal.getSelfInfo())
+          .catch((error) => bot.loggerError('获取机器人自身信息失败:', error));
       }
     }
 

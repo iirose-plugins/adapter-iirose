@@ -11,7 +11,7 @@ import kick from '../encoder/admin/manage/kick';
 import mute from '../encoder/admin/manage/mute';
 import { Stock } from '../decoder/messages/system/consume/Stock';
 import { BankCallback } from '../decoder/messages/system/consume/BankCallback';
-import { Config } from '../config';
+import { Config, normalizeConfig } from '../config';
 
 export class IIROSE_Bot extends Bot<Context>
 {
@@ -47,9 +47,9 @@ export class IIROSE_Bot extends Bot<Context>
     super(ctx, {}, 'iirose-bot');
 
     this.platform = 'iirose';
-    this.config = config;
+    this.config = normalizeConfig(config);
     this.logger = new Logger(`DEV:adapter-iirose`);
-    this.sessionCache = new SessionCache(config.sessionCacheSize);
+    this.sessionCache = new SessionCache(this.config.sessionCacheSize);
 
     // 重置状态
     this.isStarting = false;

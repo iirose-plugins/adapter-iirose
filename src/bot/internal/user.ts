@@ -99,7 +99,8 @@ export const userMethods = {
     const info = parseSelfInfo(response);
     if (!info) return null;
 
-    this.bot.user.name = info.username || this.bot.user.name;
+    const username = this.bot.wsClient?.loginObj?.n || this.bot.config.usename;
+    this.bot.user.name = username || this.bot.user.name;
     this.bot.user.avatar = info.avatar || this.bot.user.avatar;
     if (info.uid)
     {
@@ -113,7 +114,7 @@ export const userMethods = {
       const index = userlist.findIndex((user: { uid?: string }) => user?.uid === info.uid);
       const selfEntry = {
         avatar: info.avatar,
-        username: info.username,
+        username: username || info.username || '',
         color: index >= 0 ? userlist[index].color : this.bot.config.color,
         room: index >= 0 ? userlist[index].room : this.bot.wsClient?.loginObj?.r || this.bot.config.roomId,
         uid: info.uid,
@@ -128,7 +129,7 @@ export const userMethods = {
       await writeWJ(this.bot, 'wsdata/userlist.json', userlist);
     }
 
-    this.bot.logInfo('机器人自身信息已更新', info);
+    this.bot.logInfo('机器人自身信息已更新', { username, avatar: info.avatar, uid: info.uid });
     return info;
   },
 

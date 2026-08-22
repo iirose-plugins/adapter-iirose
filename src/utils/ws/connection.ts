@@ -257,30 +257,30 @@ export function createLoginObj(bot: IIROSE_Bot): LoginObj
   const roomIdReg = /\s*\[_([\\s\\S]+)_\]\s*/;
   const userNameReg = /\s*\[\\*([\\s\\S]+)\\*\]\s*/;
 
-  const roomIdConfig = bot.config.roomId;
-  const userNameConfig = bot.config.usename;
-  let username = (userNameReg.test(userNameConfig)) ? userNameConfig.match(userNameReg)?.[1] : userNameConfig;
-  let room = (roomIdReg.test(roomIdConfig)) ? roomIdConfig.match(roomIdReg)?.[1] : roomIdConfig;
+  const roomIdConfig = bot.config.roomId.trim();
+  const userNameConfig = bot.config.usename.trim();
+  let username = ((userNameReg.test(userNameConfig)) ? userNameConfig.match(userNameReg)?.[1] : userNameConfig)?.trim() || userNameConfig;
+  let room = ((roomIdReg.test(roomIdConfig)) ? roomIdConfig.match(roomIdReg)?.[1] : roomIdConfig)?.trim() || roomIdConfig;
 
   let loginObj: LoginObj;
 
   if (bot.config.smStart && bot.config.smPassword === 'ec3a4ac482b483ac02d26e440aa0a948')
   {
     loginObj = {
-      r: bot.config.smRoom,
-      n: bot.config.smUsername,
-      i: bot.config.smImage,
-      nc: bot.config.smColor,
-      s: bot.config.smGender,
-      st: bot.config.smst,
-      mo: bot.config.smmo,
-      uid: bot.config.smUid,
-      li: bot.config.smli,
-      mb: bot.config.smmb,
-      mu: bot.config.smmu,
-      la: bot.config.smLocation,
-      vc: bot.config.smvc,
-      fp: `@${md5(bot.config.smUsername)}`
+      r: bot.config.smRoom?.trim(),
+      n: bot.config.smUsername?.trim(),
+      i: bot.config.smImage?.trim(),
+      nc: bot.config.smColor?.trim(),
+      s: bot.config.smGender?.trim(),
+      st: bot.config.smst?.trim(),
+      mo: bot.config.smmo?.trim(),
+      uid: bot.config.smUid?.trim(),
+      li: bot.config.smli?.trim(),
+      mb: bot.config.smmb?.trim(),
+      mu: bot.config.smmu?.trim(),
+      la: bot.config.smLocation?.trim(),
+      vc: bot.config.smvc?.trim(),
+      fp: `@${md5(bot.config.smUsername?.trim() || '')}`
     };
 
     bot.loggerInfo('已启用蔷薇游客模式');
@@ -294,8 +294,8 @@ export function createLoginObj(bot: IIROSE_Bot): LoginObj
     }
 
     loginObj = {
-      r: room || bot.config.roomId,
-      n: username || bot.config.usename,
+      r: room || roomIdConfig,
+      n: username || userNameConfig,
       p: hashedPassword,
       st: bot.config.botStatus,
       mo: bot.config.signature,
@@ -303,7 +303,7 @@ export function createLoginObj(bot: IIROSE_Bot): LoginObj
       mu: '01',
       lr: bot.config.oldRoomId,
       rp: bot.config.roomPassword,
-      fp: `@${md5(username || bot.config.usename)}`
+      fp: `@${md5(username || userNameConfig)}`
     };
   }
 

@@ -40,6 +40,21 @@ export interface Config
   smvc?: string;
 }
 
+/** 统一去除所有字符串配置项的首尾空格 */
+export const normalizeConfig = (config: Config): Config =>
+{
+  const result: Record<string, unknown> = { ...config };
+  for (const key of Object.keys(result))
+  {
+    const value = result[key];
+    if (typeof value === 'string')
+    {
+      result[key] = value.trim();
+    }
+  }
+  return result as unknown as Config;
+};
+
 export const Config: Schema<Config> = Schema.intersect([
   Schema.object({
     usename: Schema.string().required().description('BOT的用户名<br>`不带[**]的部分`'),
