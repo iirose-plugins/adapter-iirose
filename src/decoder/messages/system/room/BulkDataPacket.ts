@@ -110,7 +110,7 @@ export const bulkDataPacket = async (message: string, bot: IIROSE_Bot): Promise<
   {
     if (bot.config.debugMode)
     {
-      await writeWJ(bot, 'wsdata/message.log', message);
+      void writeWJ(bot, 'wsdata/message.log', message);
     }
 
     let rawData: string;
@@ -300,22 +300,25 @@ export const bulkDataPacket = async (message: string, bot: IIROSE_Bot): Promise<
       }
     }
 
-    // 缓存用户列表
+    // 缓存用户列表、房间列表和房间状态，独立文件并发写入
+    const writeTasks: Promise<void>[] = [];
     if (userList.length > 0)
     {
-      await writeWJ(bot, 'wsdata/userlist.json', userList);
+      writeTasks.push(writeWJ(bot, 'wsdata/userlist.json', userList));
     }
 
-    // 缓存房间列表
     if (Object.keys(roomList).length > 0)
     {
-      await writeWJ(bot, 'wsdata/roomlist.json', roomList);
+      writeTasks.push(writeWJ(bot, 'wsdata/roomlist.json', roomList));
     }
 
-    // 缓存新版登录包前置的房间状态
     if (roomState)
     {
-      await writeWJ(bot, 'wsdata/roomState.json', roomState);
+      writeTasks.push(writeWJ(bot, 'wsdata/roomState.json', roomState));
+    }
+    if (writeTasks.length > 0)
+    {
+      await Promise.all(writeTasks);
     }
 
     // 触发一次股价查询

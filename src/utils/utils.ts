@@ -7,6 +7,19 @@ import { IIROSE_Bot } from '../bot/bot';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 
+export const ADAPTER_STORAGE_DIR = path.join('data', 'adapter', 'adapter-iirose');
+
+const writeQueues = new Map<string, Promise<void>>();
+let tempSeq = 0;
+
+/** 获取当前实例的数据根目录 */
+export const getAdapterDataDir = (bot: IIROSE_Bot): string =>
+  path.join(bot.ctx.baseDir, ADAPTER_STORAGE_DIR, bot.config.uid.trim());
+
+/** 获取当前实例下某个缓存文件的完整路径 */
+export const getAdapterDataPath = (bot: IIROSE_Bot, relativePath: string): string =>
+  path.join(getAdapterDataDir(bot), relativePath);
+
 export const Unknown_User_Name: string = "Unknown User";
 export const Unknown_Guild_Name: string = "Unknown Guild";
 export const Unknown_Channel_Name: string = "Unknown Channel";
@@ -92,22 +105,40 @@ export const stopEventsServer = (event: (() => boolean)[]) =>
  * @param relativePath 文件路径 (例如 'wsdata/userlist.json')
  * @param data 要写入的数据对象
  */
-export const writeWJ = async (bot: IIROSE_Bot, relativePath: string, data: any): Promise<void> =>
+export const writeWJ = (bot: IIROSE_Bot, relativePath: string, data: any): Promise<void> =>
 {
-  try
-  {
-    const instanceDataDir = path.join(bot.ctx.baseDir, 'data', 'adapter-iirose', bot.config.uid.trim());
-    const filePath = path.join(instanceDataDir, relativePath);
+  const filePath = getAdapterDataPath(bot, relativePath);
+  const previous = writeQueues.get(filePath) ?? Promise.resolve();
 
-    // 确保目标目录存在
-    await fs.mkdir(path.dirname(filePath), { recursive: true });
+  // 同一文件串行写入，避免并发写导致文件互相截断
+  const task = previous
+    .catch(() => void 0)
+    .then(async () =>
+    {
+      const tempPath = `${filePath}.${process.pid}.${++tempSeq}.tmp`;
+      try
+      {
+        await fs.mkdir(path.dirname(filePath), { recursive: true });
+        await fs.writeFile(tempPath, JSON.stringify(data, null, 2), 'utf8');
+        await fs.rename(tempPath, filePath);
+        bot.logInfo(`[iirose-writeWJ] 数据已更新至: ${filePath}`);
+      } catch (error)
+      {
+        bot.logger.error(`[iirose-writeWJ] 写入 ${relativePath} 失败:`, error);
+      } finally
+      {
+        await fs.rm(tempPath, { force: true }).catch(() => void 0);
+      }
+    });
 
-    await fs.writeFile(filePath, JSON.stringify(data, null, 2));
-    bot.logInfo(`[iirose-writeWJ] 数据已更新至: ${filePath}`);
-  } catch (error)
+  writeQueues.set(filePath, task);
+  return task.finally(() =>
   {
-    bot.logger.error(`[iirose-writeWJ] 写入 ${relativePath} 失败:`, error);
-  }
+    if (writeQueues.get(filePath) === task)
+    {
+      writeQueues.delete(filePath);
+    }
+  });
 };
 
 /**
@@ -120,8 +151,7 @@ export const readJsonData = async (bot: IIROSE_Bot, filename: string): Promise<a
 {
   try
   {
-    const instanceDataDir = path.join(bot.ctx.baseDir, 'data', 'adapter-iirose', bot.config.uid.trim());
-    const filePath = path.join(instanceDataDir, filename);
+    const filePath = getAdapterDataPath(bot, filename);
     const content = await fs.readFile(filePath, 'utf-8');
     return JSON.parse(content);
   } catch (error)
