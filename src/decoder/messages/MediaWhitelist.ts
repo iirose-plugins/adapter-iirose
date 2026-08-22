@@ -14,6 +14,11 @@ export interface MediaWhitelistEvent
   roomId?: string;
 }
 
+export const MEDIA_WHITELIST_LIST_PREFIX = 'a2';
+export const MEDIA_WHITELIST_ADD_ACK_PREFIXES = ['_~F', '_~X', 'qw'];
+export const MEDIA_WHITELIST_REMOVE_ACK_PREFIXES = ['qW', '_~F', '_~X'];
+export const MEDIA_WHITELIST_CLEAR_ACK_PREFIXES = ['qW', '_~F', '_~X'];
+
 /**
  * 解析“限制发言&点播”白名单列表
  * @param message 消息
@@ -21,7 +26,7 @@ export interface MediaWhitelistEvent
  */
 export const parseMediaWhitelistList = (message: string): MediaWhitelistEntry[] | undefined =>
 {
-  if (!message.startsWith('a2')) return undefined;
+  if (!message.startsWith(MEDIA_WHITELIST_LIST_PREFIX)) return undefined;
 
   const content = message.slice(2);
   if (!content) return [];

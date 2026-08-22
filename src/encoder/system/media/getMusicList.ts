@@ -1,5 +1,7 @@
 import { decode } from '../../../utils/entities';
 
+export const MEDIA_LIST_RESPONSE_PREFIX = 'a1';
+
 export interface MediaListItem
 {
   id: string;
@@ -27,9 +29,9 @@ export default function getMusicList(): string
  */
 export const parseMusicList = (message: string): MediaListItem[] | undefined =>
 {
-  if (message.startsWith('a1'))
+  if (message.startsWith(MEDIA_LIST_RESPONSE_PREFIX))
   {
-    const content = message.substring(2);
+    const content = message.substring(MEDIA_LIST_RESPONSE_PREFIX.length);
     if (!content) return []; // 歌单为空
 
     const result: MediaListItem[] = content.split('<').map((e, i) =>

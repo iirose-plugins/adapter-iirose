@@ -9,6 +9,7 @@ import { bulkDataPacket, UserList } from './messages/BulkDataPacket';
 import type { RoomState } from './messages/BulkDataPacket';
 import { musicMessage, MusicMessage } from './messages/MusicMessage';
 import { MediaWhitelistEntry, MediaWhitelistEvent, parseMediaWhitelistList, parseMediaWhitelistEvent } from './messages/MediaWhitelist';
+import { RoomRestrictionEvent, MuteListEntry, MuteEvent, BlacklistEvent, parseRoomRestriction, parseMuteList, parseMuteEvent, parseBlacklistList, parseBlacklistEvent } from './messages/RoomRestriction';
 import { bankCallback, BankCallback } from './messages/BankCallback';
 import { manyMessage, ManyMessage } from './messages/ManyMessage';
 import { switchRoom, SwitchRoom } from './messages/SwitchRoom';
@@ -41,6 +42,11 @@ export const decoder = async (bot: IIROSE_Bot, msg: string): Promise<MessageType
   len.broadcastAck = broadcastAck(msg);
   len.mediaWhitelistList = parseMediaWhitelistList(msg);
   len.mediaWhitelistEvent = parseMediaWhitelistEvent(msg);
+  len.roomRestriction = parseRoomRestriction(msg);
+  len.muteList = parseMuteList(msg);
+  len.muteEvent = parseMuteEvent(msg);
+  len.blacklistList = parseBlacklistList(msg);
+  len.blacklistEvent = parseBlacklistEvent(msg);
 
   const newObj = {};
   for (const key in len)
@@ -92,4 +98,9 @@ export interface MessageType
   broadcastAck?: boolean;
   mediaWhitelistList?: MediaWhitelistEntry[];
   mediaWhitelistEvent?: MediaWhitelistEvent;
+  roomRestriction?: RoomRestrictionEvent;
+  muteList?: MuteListEntry[];
+  muteEvent?: MuteEvent;
+  blacklistList?: MediaWhitelistEntry[];
+  blacklistEvent?: BlacklistEvent;
 }

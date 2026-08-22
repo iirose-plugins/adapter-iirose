@@ -6,6 +6,7 @@ import { BankCallback } from '../decoder/messages/BankCallback';
 import { MessageType } from '../decoder';
 import type { RoomState } from '../decoder/messages/BulkDataPacket';
 import type { MediaWhitelistEntry, MediaWhitelistEvent } from '../decoder/messages/MediaWhitelist';
+import type { RoomRestrictionEvent, MuteListEntry, MuteEvent, BlacklistEvent } from '../decoder/messages/RoomRestriction';
 import { IIROSE_Bot } from './bot';
 export type { MailboxMessageData };
 
@@ -122,6 +123,11 @@ export interface Events
   'iirose/broadcast-ack'(remaining: number): void;
   'iirose/media-whitelist-list'(data: MediaWhitelistEntry[]): void;
   'iirose/media-whitelist-event'(data: MediaWhitelistEvent): void;
+  'iirose/room-restriction'(data: RoomRestrictionEvent): void;
+  'iirose/mute-list'(data: MuteListEntry[]): void;
+  'iirose/mute-event'(data: MuteEvent): void;
+  'iirose/blacklist-list'(data: MediaWhitelistEntry[]): void;
+  'iirose/blacklist-event'(data: BlacklistEvent): void;
   'iirose/stock-update'(stockData: Stock): void;
   'iirose/bank-update'(bankData: BankCallback): void;
 }

@@ -569,6 +569,46 @@ export const decoderMessage = async (obj: MessageType, bot: IIROSE_Bot) =>
         break;
       }
 
+      case 'roomRestriction': {
+        const data = obj.roomRestriction;
+        if (!data) break;
+        bot.fulllogInfo('iirose/room-restriction', data);
+        bot.ctx.emit('iirose/room-restriction', data);
+        break;
+      }
+
+      case 'muteList': {
+        const data = obj.muteList;
+        if (!data) break;
+        bot.fulllogInfo('iirose/mute-list', data);
+        bot.ctx.emit('iirose/mute-list', data);
+        break;
+      }
+
+      case 'muteEvent': {
+        const data = obj.muteEvent;
+        if (!data) break;
+        bot.fulllogInfo('iirose/mute-event', data);
+        bot.ctx.emit('iirose/mute-event', data);
+        break;
+      }
+
+      case 'blacklistList': {
+        const data = obj.blacklistList;
+        if (!data) break;
+        bot.fulllogInfo('iirose/blacklist-list', data);
+        bot.ctx.emit('iirose/blacklist-list', data);
+        break;
+      }
+
+      case 'blacklistEvent': {
+        const data = obj.blacklistEvent;
+        if (!data) break;
+        bot.fulllogInfo('iirose/blacklist-event', data);
+        bot.ctx.emit('iirose/blacklist-event', data);
+        break;
+      }
+
       default: {
         break;
       }

@@ -1,7 +1,7 @@
 import { IIROSE_Bot } from './bot';
 import * as eventType from './event';
 import { Universal, User } from "koishi";
-import { IIROSE_WSsend } from '../utils/ws';
+import { IIROSE_WSsend, sendAndWaitForResponsePrefixes } from '../utils/ws';
 import Like from '../encoder/user/like/Like';
 import Follow from '../encoder/user/follow/Follow';
 import Dislike from '../encoder/user/like/Dislike';
@@ -28,6 +28,9 @@ import getStoreFunction from '../encoder/system/store/getStore';
 import cutAllFunction from '../encoder/admin/media/media_clear';
 import whiteListFunction from '../encoder/admin/manage/whiteList';
 import { mediaWhitelistQuery, mediaWhitelistAdd, mediaWhitelistRemove, mediaWhitelistClear } from '../encoder/admin/manage/mediaWhitelist';
+import { setSpeechRestriction, setMusicRestriction, setBothRestrictions, type RoomRestrictionLevel } from '../encoder/admin/manage/roomRestriction';
+import muteFunction, { muteList as muteListFunction, unmute as unmuteFunction, clearMuteList as clearMuteListFunction } from '../encoder/admin/manage/mute';
+import blackListFunction, { blackListQuery, blackListRemove, blackListClear } from '../encoder/admin/manage/blackList';
 import { gradeUser, cancelGradeUser } from '../encoder/user/grade';
 import getMomentsFunction from '../encoder/user/moments/getMoments';
 import { Moments, parseMoments } from '../decoder/messages/Moments';
@@ -57,15 +60,17 @@ import { parseUserProfileByName, UserProfileByName } from '../decoder/messages/U
 import { BankCallback, bankCallback as parseBankCallback } from '../decoder/messages/BankCallback';
 import getCompletedOrdersFunction from '../encoder/system/store/personal/orders/getCompletedOrders';
 import getAfterSaleOrdersFunction from '../encoder/system/store/personal/orders/getAfterSaleOrders';
-import getMusicListFunction, { parseMusicList, MediaListItem } from '../encoder/system/media/getMusicList';
+import getMusicListFunction, { parseMusicList, MediaListItem, MEDIA_LIST_RESPONSE_PREFIX } from '../encoder/system/media/getMusicList';
 import { getFollowAndFansPacket, parseFollowAndFans, FollowList } from '../encoder/user/follow/followList';
 import { CHANGELOG_URL, ChangelogData, parseChangelog } from '../utils/changelog';
+import { MEDIA_POSITION_RESPONSE_PREFIX, MEDIA_NO_MEDIA_RESPONSE, parseMediaPosition, isMediaSuccess } from '../decoder/messages/MediaPosition';
 import getPendingReviewOrdersFunction from '../encoder/system/store/personal/orders/getPendingReviewOrders';
 import getPendingReceiptOrdersFunction from '../encoder/system/store/personal/orders/getPendingReceiptOrders';
 import getPendingPaymentOrdersFunction from '../encoder/system/store/personal/orders/getPendingPaymentOrders';
 import getPendingConfirmationOrdersFunction from '../encoder/system/store/personal/orders/getPendingConfirmationOrders';
 import type { RoomState } from '../decoder/messages/BulkDataPacket';
-import { parseMediaWhitelistList, type MediaWhitelistEntry } from '../decoder/messages/MediaWhitelist';
+import { parseMediaWhitelistList, MEDIA_WHITELIST_LIST_PREFIX, MEDIA_WHITELIST_ADD_ACK_PREFIXES, MEDIA_WHITELIST_REMOVE_ACK_PREFIXES, MEDIA_WHITELIST_CLEAR_ACK_PREFIXES, type MediaWhitelistEntry } from '../decoder/messages/MediaWhitelist';
+import { parseMuteList, parseBlacklistList, isRoomRestrictionAck, SPEECH_RESTRICTION_PREFIX, MUSIC_RESTRICTION_PREFIX, BOTH_RESTRICTION_PREFIX, MUTE_LIST_PREFIX, MUTE_ADD_ACK_PREFIXES, MUTE_REMOVE_ACK_PREFIXES, MUTE_CLEAR_ACK_PREFIXES, BLACKLIST_LIST_PREFIX, BLACKLIST_ADD_ACK_PREFIXES, BLACKLIST_REMOVE_ACK_PREFIXES, BLACKLIST_CLEAR_ACK_PREFIXES, type MuteListEntry } from '../decoder/messages/RoomRestriction';
 
 const DEFAULT_BROADCAST_LIMIT = 10;
 const BROADCAST_COUNT_FILE = 'wsdata/broadcastCount.json';
@@ -147,10 +152,8 @@ export class Internal
    */
   async seekMedia(operation: '<' | '>', time: string): Promise<number | null>
   {
-    const response = await this.sendAndWaitForResponsePrefixes(mediaOperationFunction(operation, time), [',', '_~P']);
-    if (!response || response === '_~P') return null;
-    const position = Number(response.slice(1));
-    return Number.isFinite(position) ? position : null;
+    const response = await sendAndWaitForResponsePrefixes(this.bot, mediaOperationFunction(operation, time), [MEDIA_POSITION_RESPONSE_PREFIX, MEDIA_NO_MEDIA_RESPONSE]);
+    return parseMediaPosition(response ?? '');
   }
 
   /**
@@ -160,10 +163,8 @@ export class Internal
    */
   async jumpMedia(time: string): Promise<number | null>
   {
-    const response = await this.sendAndWaitForResponsePrefixes(mediaGotoFunction(time), [',', '_~P']);
-    if (!response || response === '_~P') return null;
-    const position = Number(response.slice(1));
-    return Number.isFinite(position) ? position : null;
+    const response = await sendAndWaitForResponsePrefixes(this.bot, mediaGotoFunction(time), [MEDIA_POSITION_RESPONSE_PREFIX, MEDIA_NO_MEDIA_RESPONSE]);
+    return parseMediaPosition(response ?? '');
   }
 
   /**
@@ -182,8 +183,8 @@ export class Internal
    */
   async nextMedia(): Promise<boolean>
   {
-    const response = await this.sendAndWaitForResponsePrefixes(cutOneFunction(), [',', '_~P']);
-    return response === ',';
+    const response = await sendAndWaitForResponsePrefixes(this.bot, cutOneFunction(), [MEDIA_POSITION_RESPONSE_PREFIX, MEDIA_NO_MEDIA_RESPONSE]);
+    return isMediaSuccess(response ?? '');
   }
 
   /**
@@ -209,7 +210,7 @@ export class Internal
    */
   async getMediaWhitelist(): Promise<MediaWhitelistEntry[] | null>
   {
-    const response = await this.sendAndWaitForResponsePrefixes(mediaWhitelistQuery(), ['a2']);
+    const response = await sendAndWaitForResponsePrefixes(this.bot, mediaWhitelistQuery(), [MEDIA_WHITELIST_LIST_PREFIX]);
     if (!response) return null;
     return parseMediaWhitelistList(response) ?? [];
   }
@@ -222,7 +223,7 @@ export class Internal
    */
   async addMediaWhitelist(username: string, duration: string, intro: string): Promise<boolean>
   {
-    const response = await this.sendAndWaitForResponsePrefixes(mediaWhitelistAdd(username, duration, intro), ['_~F', '_~X', 'qw']);
+    const response = await sendAndWaitForResponsePrefixes(this.bot, mediaWhitelistAdd(username, duration, intro), MEDIA_WHITELIST_ADD_ACK_PREFIXES);
     return response !== null;
   }
 
@@ -232,7 +233,7 @@ export class Internal
    */
   async removeMediaWhitelist(uid: string): Promise<boolean>
   {
-    const response = await this.sendAndWaitForResponsePrefixes(mediaWhitelistRemove(uid), ['qW', '_~F', '_~X']);
+    const response = await sendAndWaitForResponsePrefixes(this.bot, mediaWhitelistRemove(uid), MEDIA_WHITELIST_REMOVE_ACK_PREFIXES);
     return response !== null;
   }
 
@@ -241,7 +242,117 @@ export class Internal
    */
   async clearMediaWhitelist(): Promise<boolean>
   {
-    const response = await this.sendAndWaitForResponsePrefixes(mediaWhitelistClear(), ['qW', '_~F', '_~X']);
+    const response = await sendAndWaitForResponsePrefixes(this.bot, mediaWhitelistClear(), MEDIA_WHITELIST_CLEAR_ACK_PREFIXES);
+    return response !== null;
+  }
+
+  /**
+   * 设置房间发言限制
+   * @param level 0 所有人, 1 普通成员以上, 2 带星成员以上, 3 仅房主, 4 白名单以上, 5 仅白名单
+   */
+  async setRoomSpeechLevel(level: RoomRestrictionLevel): Promise<boolean>
+  {
+    const response = await sendAndWaitForResponsePrefixes(this.bot, setSpeechRestriction(level), [SPEECH_RESTRICTION_PREFIX]);
+    return isRoomRestrictionAck(response ?? '', 'speech', level);
+  }
+
+  /**
+   * 设置房间点播限制
+   * @param level 0 所有人, 1 普通成员以上, 2 带星成员以上, 3 仅房主, 4 白名单以上, 5 仅白名单
+   */
+  async setRoomMusicLevel(level: RoomRestrictionLevel): Promise<boolean>
+  {
+    const response = await sendAndWaitForResponsePrefixes(this.bot, setMusicRestriction(level), [MUSIC_RESTRICTION_PREFIX]);
+    return isRoomRestrictionAck(response ?? '', 'music', level);
+  }
+
+  /**
+   * 同时设置房间发言和点播限制
+   * @param level 0 所有人, 1 普通成员以上, 2 带星成员以上, 3 仅房主, 4 白名单以上, 5 仅白名单
+   */
+  async setRoomBothLevel(level: RoomRestrictionLevel): Promise<boolean>
+  {
+    const response = await sendAndWaitForResponsePrefixes(this.bot, setBothRestrictions(level), [BOTH_RESTRICTION_PREFIX]);
+    return isRoomRestrictionAck(response ?? '', 'both', level);
+  }
+
+  /**
+   * 查询当前房间禁言列表
+   */
+  async getMuteList(): Promise<MuteListEntry[] | null>
+  {
+    const response = await sendAndWaitForResponsePrefixes(this.bot, muteListFunction(), [MUTE_LIST_PREFIX]);
+    if (!response) return null;
+    return parseMuteList(response) ?? [];
+  }
+
+  /**
+   * 禁言用户
+   * @param type 'chat' 禁止发言, 'music' 禁止点播, 'all' 同时禁止
+   */
+  async muteUser(type: 'chat' | 'music' | 'all', username: string, duration: string, intro: string): Promise<boolean>
+  {
+    const response = await sendAndWaitForResponsePrefixes(this.bot, muteFunction(type, username, duration, intro), MUTE_ADD_ACK_PREFIXES);
+    return response !== null;
+  }
+
+  /**
+   * 解除禁言
+   * @param uid 用户UID
+   */
+  async unmuteUser(uid: string): Promise<boolean>
+  {
+    const response = await sendAndWaitForResponsePrefixes(this.bot, unmuteFunction(uid), MUTE_REMOVE_ACK_PREFIXES);
+    return response !== null;
+  }
+
+  /**
+   * 清空当前房间禁言列表
+   */
+  async clearMuteList(): Promise<boolean>
+  {
+    const response = await sendAndWaitForResponsePrefixes(this.bot, clearMuteListFunction(), MUTE_CLEAR_ACK_PREFIXES);
+    return response !== null;
+  }
+
+  /**
+   * 查询当前房间黑名单
+   */
+  async getBlacklist(): Promise<MediaWhitelistEntry[] | null>
+  {
+    const response = await sendAndWaitForResponsePrefixes(this.bot, blackListQuery(), [BLACKLIST_LIST_PREFIX]);
+    if (!response) return null;
+    return parseBlacklistList(response) ?? [];
+  }
+
+  /**
+   * 添加黑名单
+   * @param username 用户名
+   * @param duration 持续时间，例如 "30m"、"1d"
+   * @param intro 备注
+   */
+  async addBlacklist(username: string, duration: string, intro: string): Promise<boolean>
+  {
+    const response = await sendAndWaitForResponsePrefixes(this.bot, blackListFunction(username, duration, intro), BLACKLIST_ADD_ACK_PREFIXES);
+    return response !== null;
+  }
+
+  /**
+   * 移除黑名单
+   * @param uid 用户UID
+   */
+  async removeBlacklist(uid: string): Promise<boolean>
+  {
+    const response = await sendAndWaitForResponsePrefixes(this.bot, blackListRemove(uid), BLACKLIST_REMOVE_ACK_PREFIXES);
+    return response !== null;
+  }
+
+  /**
+   * 清空当前房间黑名单
+   */
+  async clearBlacklist(): Promise<boolean>
+  {
+    const response = await sendAndWaitForResponsePrefixes(this.bot, blackListClear(), BLACKLIST_CLEAR_ACK_PREFIXES);
     return response !== null;
   }
 
@@ -284,30 +395,6 @@ export class Internal
   {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-  }
-
-  private async sendAndWaitForResponsePrefixes(payload: string, prefixes: string[], timeout?: number): Promise<string | null>
-  {
-    const effectiveTimeout = timeout ?? this.bot.config.timeout;
-
-    return new Promise((resolve) =>
-    {
-      const dispose = this.bot.ctx.setTimeout(() =>
-      {
-        prefixes.forEach(prefix => this.bot.responseListeners.delete(prefix));
-        resolve(null);
-      }, effectiveTimeout);
-
-      const listener = (data: string) =>
-      {
-        dispose();
-        prefixes.forEach(prefix => this.bot.responseListeners.delete(prefix));
-        resolve(data);
-      };
-
-      prefixes.forEach(prefix => this.bot.responseListeners.set(prefix, { listener, stopPropagation: true }));
-      IIROSE_WSsend(this.bot, payload);
-    });
   }
 
   /**
@@ -580,7 +667,7 @@ export class Internal
    */
   async getMusicList(): Promise<MediaListItem[] | null>
   {
-    const response = await this.bot.sendAndWaitForResponse(getMusicListFunction(), 'a1', true);
+    const response = await this.bot.sendAndWaitForResponse(getMusicListFunction(), MEDIA_LIST_RESPONSE_PREFIX, true);
     if (response)
     {
       return parseMusicList(response);
@@ -824,6 +911,17 @@ export interface InternalType
   addMediaWhitelist(username: string, duration: string, intro: string): Promise<boolean>;
   removeMediaWhitelist(uid: string): Promise<boolean>;
   clearMediaWhitelist(): Promise<boolean>;
+  setRoomSpeechLevel(level: RoomRestrictionLevel): Promise<boolean>;
+  setRoomMusicLevel(level: RoomRestrictionLevel): Promise<boolean>;
+  setRoomBothLevel(level: RoomRestrictionLevel): Promise<boolean>;
+  getMuteList(): Promise<MuteListEntry[] | null>;
+  muteUser(type: 'chat' | 'music' | 'all', username: string, duration: string, intro: string): Promise<boolean>;
+  unmuteUser(uid: string): Promise<boolean>;
+  clearMuteList(): Promise<boolean>;
+  getBlacklist(): Promise<MediaWhitelistEntry[] | null>;
+  addBlacklist(username: string, duration: string, intro: string): Promise<boolean>;
+  removeBlacklist(uid: string): Promise<boolean>;
+  clearBlacklist(): Promise<boolean>;
   broadcast(broadcast: eventType.broadcast): void;
   getBroadcastRemaining(): Promise<number>;
   recordBroadcastAck(): Promise<number>;
