@@ -1,12 +1,12 @@
 import { Fragment, Session } from 'koishi';
-import type { MailboxMessageData } from '../decoder/messages/MailboxMessage';
-import { BroadcastMessage } from '../decoder/messages/BroadcastMessage';
-import { Stock } from '../decoder/messages/Stock';
-import { BankCallback } from '../decoder/messages/BankCallback';
+import type { MailboxMessageData } from '../decoder/messages/system/mailbox/MailboxMessage';
+import { BroadcastMessage } from '../decoder/messages/chat/BroadcastMessage';
+import { Stock } from '../decoder/messages/system/consume/Stock';
+import { BankCallback } from '../decoder/messages/system/consume/BankCallback';
 import { MessageType } from '../decoder';
-import type { RoomState } from '../decoder/messages/BulkDataPacket';
-import type { MediaWhitelistEntry, MediaWhitelistEvent } from '../decoder/messages/MediaWhitelist';
-import type { RoomRestrictionEvent, MuteListEntry, MuteEvent, BlacklistEvent } from '../decoder/messages/RoomRestriction';
+import type { RoomState } from '../decoder/messages/system/room/BulkDataPacket';
+import type { MediaWhitelistEntry, MediaWhitelistEvent } from '../decoder/messages/admin/manage/MediaWhitelist';
+import type { RoomRestrictionEvent, MuteListEntry, MuteEvent, BlacklistEvent } from '../decoder/messages/admin/manage/RoomRestriction';
 import { IIROSE_Bot } from './bot';
 export type { MailboxMessageData };
 

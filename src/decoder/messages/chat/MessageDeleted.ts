@@ -1,4 +1,4 @@
-import { IIROSE_Bot } from '../../bot/bot';
+import { IIROSE_Bot } from '../../../bot/bot';
 
 export interface MessageDeletedData
 {

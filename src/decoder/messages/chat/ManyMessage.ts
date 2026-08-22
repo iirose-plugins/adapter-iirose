@@ -1,6 +1,6 @@
-import { decode } from '../../utils/entities';
-import { IIROSE_Bot } from '../../bot/bot';
-import { parseAvatar } from '../../utils/utils';
+import { decode } from '../../../utils/entities';
+import { IIROSE_Bot } from '../../../bot/bot';
+import { parseAvatar } from '../../../utils/utils';
 
 export interface replyMessage
 {

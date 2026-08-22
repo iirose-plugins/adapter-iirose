@@ -9,8 +9,8 @@ import { SendOptions } from '@satorijs/protocol';
 import { SessionCache } from '../utils/sessionCache';
 import kick from '../encoder/admin/manage/kick';
 import mute from '../encoder/admin/manage/mute';
-import { Stock } from '../decoder/messages/Stock';
-import { BankCallback } from '../decoder/messages/BankCallback';
+import { Stock } from '../decoder/messages/system/consume/Stock';
+import { BankCallback } from '../decoder/messages/system/consume/BankCallback';
 import { Config } from '../config';
 
 export class IIROSE_Bot extends Bot<Context>

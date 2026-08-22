@@ -1,5 +1,5 @@
-import { decode } from '../../utils/entities';
-import { parseAvatar } from '../../utils/utils';
+import { decode } from '../../../utils/entities';
+import { parseAvatar } from '../../../utils/utils';
 import { replyMessage, replyMsg } from './PublicMessage';
 
 interface data

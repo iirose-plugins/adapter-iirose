@@ -1,8 +1,8 @@
 import { h } from 'koishi';
-import { IIROSE_Bot } from '../../bot/bot';
-import { parseAvatar, writeWJ } from '../../utils/utils';
-import { stockGet } from '../../encoder/system/consume/stock';
-import { bankGet } from '../../encoder/system/consume/bank';
+import { IIROSE_Bot } from '../../../../bot/bot';
+import { parseAvatar, writeWJ } from '../../../../utils/utils';
+import { stockGet } from '../../../../encoder/system/consume/stock';
+import { bankGet } from '../../../../encoder/system/consume/bank';
 
 export interface UserList
 {

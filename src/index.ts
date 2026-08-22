@@ -23,9 +23,9 @@ export * from './bot/bot';
 export * from './utils/ws';
 export * from './utils/changelog';
 export * from './bot/event';
-export type { RoomState } from './decoder/messages/BulkDataPacket';
-export type { MediaWhitelistEntry, MediaWhitelistEvent } from './decoder/messages/MediaWhitelist';
-export type { RoomRestrictionEvent, MuteListEntry, MuteEvent, BlacklistEvent } from './decoder/messages/RoomRestriction';
+export type { RoomState } from './decoder/messages/system/room/BulkDataPacket';
+export type { MediaWhitelistEntry, MediaWhitelistEvent } from './decoder/messages/admin/manage/MediaWhitelist';
+export type { RoomRestrictionEvent, MuteListEntry, MuteEvent, BlacklistEvent } from './decoder/messages/admin/manage/RoomRestriction';
 
 declare module 'koishi' {
   interface Events extends IIROSE.Events { }

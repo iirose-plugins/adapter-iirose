@@ -1,4 +1,4 @@
-import { IIROSE_Bot } from "../../bot/bot";
+import { IIROSE_Bot } from "../../../../bot/bot";
 
 // 用户资料数据结构
 export interface UserProfileByName

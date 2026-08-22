@@ -1,4 +1,4 @@
-import { parseAvatar } from "../../utils/utils";
+import { parseAvatar } from "../../../../utils/utils";
 
 export interface MomentPost
 {
