@@ -63,6 +63,8 @@ import getAfterSaleOrdersFunction from '../encoder/system/store/personal/orders/
 import getMusicListFunction, { parseMusicList, MediaListItem, MEDIA_LIST_RESPONSE_PREFIX } from '../encoder/system/media/getMusicList';
 import { getFollowAndFansPacket, parseFollowAndFans, FollowList } from '../encoder/user/follow/followList';
 import { CHANGELOG_URL, ChangelogData, parseChangelog } from '../utils/changelog';
+import getUserListFunction from '../encoder/system/GetUserList';
+import moveRoomStartFunction from '../encoder/system/room/moveRoomStart';
 import { MEDIA_POSITION_RESPONSE_PREFIX, MEDIA_NO_MEDIA_RESPONSE, parseMediaPosition, isMediaSuccess } from '../decoder/messages/admin/media/MediaPosition';
 import getPendingReviewOrdersFunction from '../encoder/system/store/personal/orders/getPendingReviewOrders';
 import getPendingReceiptOrdersFunction from '../encoder/system/store/personal/orders/getPendingReceiptOrders';
@@ -127,6 +129,24 @@ export class Internal
       await this.bot.wsClient.switchRoom();
       this.bot.loggerInfo(`移动到房间: ${roomId}`);
     }
+  }
+
+  /**
+   * 直接发送移动房间报文，不触发 WebSocket 重连
+   * @param roomId 目标房间ID
+   * @param roomPassword 房间密码 (可选)
+   */
+  moveRoomStart(roomId: string, roomPassword?: string)
+  {
+    IIROSE_WSsend(this.bot, moveRoomStartFunction(roomId, roomPassword));
+  }
+
+  /**
+   * 请求刷新全服用户在线列表
+   */
+  requestUserList()
+  {
+    IIROSE_WSsend(this.bot, getUserListFunction());
   }
 
   kick(kickData: eventType.kickData)
@@ -897,6 +917,8 @@ export class Internal
 export interface InternalType
 {
   moveRoom(moveData: eventType.move): Promise<void>;
+  moveRoomStart(roomId: string, roomPassword?: string): void;
+  requestUserList(): void;
   kick(kickData: eventType.kickData): void;
   cutOne(cutOne?: eventType.cutOne): void;
   cutAll(): void;
