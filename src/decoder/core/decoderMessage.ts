@@ -416,6 +416,31 @@ export const decoderMessage = async (obj: MessageType, bot: IIROSE_Bot) =>
         break;
       }
 
+      case 'kicked': {
+        if (!obj.kicked) break;
+
+        const username = bot.config.smStart ? bot.config.smUsername : bot.config.usename;
+        const session = bot.session({
+          type: 'guild-member-removed',
+          platform: 'iirose',
+          selfId: bot.selfId,
+          timestamp: Date.now(),
+          guild: { id: bot.config.roomId },
+          channel: {
+            id: bot.config.roomId,
+            type: 0,
+          },
+          user: {
+            id: bot.selfId,
+            name: bot.user?.name || username || 'Unknown User',
+            avatar: bot.user?.avatar || '',
+          },
+        });
+        bot.fulllogInfo('guild-member-removed', session);
+        bot.dispatch(session);
+        break;
+      }
+
       case 'messageDeleted': {
         const data = obj.messageDeleted;
         if (!data) return;

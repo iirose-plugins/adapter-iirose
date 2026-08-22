@@ -8,7 +8,7 @@ import { comparePassword } from '../utils/password';
 import { SendOptions } from '@satorijs/protocol';
 import { SessionCache } from '../utils/sessionCache';
 import kick from '../encoder/admin/manage/kick';
-import mute from '../encoder/admin/manage/mute';
+import mute, { unmute } from '../encoder/admin/manage/mute';
 import { Stock } from '../decoder/messages/system/consume/Stock';
 import { BankCallback } from '../decoder/messages/system/consume/BankCallback';
 import { Config, normalizeConfig } from '../config';
@@ -546,6 +546,11 @@ export class IIROSE_Bot extends Bot<Context>
     // 如果成功获取用户名，则执行踢出操作
     if (userName)
     {
+      // permanent 使用黑名单实现“无法再次加入群组”
+      if (permanent)
+      {
+        await this.internal.addBlacklist(userName, '&', '永久踢出');
+      }
       await IIROSE_WSsend(this, kick(userName));
     } else
     {
@@ -555,6 +560,13 @@ export class IIROSE_Bot extends Bot<Context>
 
   async muteGuildMember(guildId: string, userId: string, duration: number, reason?: string): Promise<void>
   {
+    // 时长为 0 表示解除禁言
+    if (duration <= 0)
+    {
+      await IIROSE_WSsend(this, unmute(userId));
+      return;
+    }
+
     // 从 userlist.json 获取用户名
     const userName = await findUserNameById(this, userId);
 

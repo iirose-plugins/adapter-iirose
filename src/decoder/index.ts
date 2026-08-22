@@ -14,6 +14,7 @@ import { bankCallback, BankCallback } from './messages/system/consume/BankCallba
 import { manyMessage, ManyMessage } from './messages/chat/ManyMessage';
 import { switchRoom, SwitchRoom } from './messages/room/SwitchRoom';
 import { selfMove, SelfMove } from './messages/room/SelfMove';
+import { kicked } from './messages/room/Kicked';
 import { comparePassword } from '../utils/password';
 import { music, Music } from './messages/media/Music';
 import { stock, Stock } from './messages/system/consume/Stock';
@@ -36,6 +37,7 @@ export const decoder = async (bot: IIROSE_Bot, msg: string): Promise<MessageType
   len.music = music(msg);
   len.bankCallback = bankCallback(msg, bot);
   len.selfMove = selfMove(msg);
+  len.kicked = kicked(msg);
   len.mailboxMessage = mailboxMessage(msg);
   len.musicMessage = musicMessage(msg);
   len.stock = stock(msg, bot);
@@ -91,6 +93,7 @@ export interface MessageType
   music?: Music;
   bankCallback?: BankCallback;
   selfMove?: SelfMove;
+  kicked?: boolean;
   mailboxMessage?: MailboxMessageData;
   musicMessage?: MusicMessage;
   stock?: Stock;

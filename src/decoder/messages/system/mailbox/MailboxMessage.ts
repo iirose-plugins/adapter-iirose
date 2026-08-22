@@ -67,7 +67,7 @@ export const mailboxMessage = (message: string): MailboxMessageData | null =>
       // roomNotice
       return {
         type: 'roomNotice',
-        notice: decode(tmp[0]),
+        notice: decode(tmp[0].replace(/^\*/, '')),
         background: tmp[1],
         timestamp: Number(tmp[2]),
       };

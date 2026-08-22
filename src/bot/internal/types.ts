@@ -36,6 +36,12 @@ export interface InternalType
   nextMedia(): Promise<boolean>;
   clearMedia(): void;
   setMaxUser(setMaxUser?: eventType.setMaxUser): void;
+  getRoomMaxUsers(): Promise<number | null>;
+  setRoomMaxUsers(count?: number | null): Promise<boolean>;
+  getRoomMaxGuests(): Promise<number | null>;
+  setRoomMaxGuests(count?: number | null): Promise<boolean>;
+  getRoomMinImpression(): Promise<number | null>;
+  setRoomMinImpression(score?: number | null): Promise<boolean>;
   whiteList(whiteList: eventType.whiteList): void;
   getMediaWhitelist(): Promise<MediaWhitelistEntry[] | null>;
   addMediaWhitelist(username: string, duration: string, intro: string): Promise<boolean>;
