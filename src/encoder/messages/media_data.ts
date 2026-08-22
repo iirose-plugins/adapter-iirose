@@ -1,4 +1,4 @@
-import { musicOrigin } from "../../bot/event";
+import { musicOrigin } from "../../bot/type";
 
 /**
  * 构建媒体数据消息

@@ -1,6 +1,6 @@
 
 import PublicMessage from './PublicMessage';
-import { musicOrigin } from '../../bot/event';
+import { musicOrigin } from '../../bot/type';
 import { encode } from '../../utils/entities';
 
 /**

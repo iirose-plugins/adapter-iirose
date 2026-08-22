@@ -23,6 +23,8 @@ export * from './bot/bot';
 export * from './utils/ws';
 export * from './utils/changelog';
 export * from './bot/event';
+export * from './bot/type';
+export type { MailboxMessageData } from './decoder/messages/system/mailbox/MailboxMessage';
 export type { RoomState } from './decoder/messages/system/room/BulkDataPacket';
 export type { MediaWhitelistEntry, MediaWhitelistEvent } from './decoder/messages/admin/manage/MediaWhitelist';
 export type { RoomRestrictionEvent, MuteListEntry, MuteEvent, BlacklistEvent } from './decoder/messages/admin/manage/RoomRestriction';

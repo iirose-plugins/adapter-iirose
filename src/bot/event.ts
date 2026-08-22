@@ -1,5 +1,4 @@
-import { Fragment, Session } from 'koishi';
-import type { MailboxMessageData } from '../decoder/messages/system/mailbox/MailboxMessage';
+import { Session } from 'koishi';
 import { BroadcastMessage } from '../decoder/messages/chat/BroadcastMessage';
 import { Stock } from '../decoder/messages/system/consume/Stock';
 import { BankCallback } from '../decoder/messages/system/consume/BankCallback';
@@ -7,104 +6,7 @@ import { MessageType } from '../decoder';
 import type { RoomState } from '../decoder/messages/system/room/BulkDataPacket';
 import type { MediaWhitelistEntry, MediaWhitelistEvent } from '../decoder/messages/admin/manage/MediaWhitelist';
 import type { RoomRestrictionEvent, MuteListEntry, MuteEvent, BlacklistEvent } from '../decoder/messages/admin/manage/RoomRestriction';
-import { IIROSE_Bot } from './bot';
-export type { MailboxMessageData };
-
-export interface kickData
-{
-  username: string;
-}
-
-export interface cutOne
-{
-  id?: string;
-}
-
-export interface setMaxUser
-{
-  maxMember: number;
-}
-
-export interface whiteList
-{
-  username: string;
-  time: string;
-  intro?: string;
-}
-
-export interface broadcast
-{
-  message: string;
-  color: string;
-}
-
-export interface move
-{
-  roomId: string;
-  roomPassword?: string;
-}
-
-export interface EventsCallBackOrigin
-{
-  type: string;
-  userId?: string;
-  username?: string;
-  timestamp?: number;
-  author?: {
-    userId: string;
-    avatar: string;
-    username: string;
-  };
-  platform: 'iirose';
-  guildId?: string;
-  selfId?: string;
-  bot?: IIROSE_Bot;
-  channelId?: string;
-  send: (data: {
-    public?: {
-      message: Fragment;
-    };
-    private?: {
-      message: Fragment;
-      userId: string;
-    };
-  }) => void;
-  data?: any;
-}
-
-export interface musicOrigin
-{
-  type: 'music' | 'video';
-  name: string;
-  signer: string;
-  cover: string;
-  link: string;
-  url: string;
-  duration: number;
-  bitRate: number;
-  color: string;
-  lyrics: string;
-  origin: 'netease' | 'bilibili' | 'null' | 'undefined' | null;
-}
-
-export interface StockGet
-{
-  (stockData: Stock): void;
-}
-
-export interface StockSession extends Stock
-{
-  send?: (data: {
-    public?: {
-      message: Fragment;
-    };
-    private?: {
-      message: Fragment;
-      userId: string;
-    };
-  }) => void;
-  bot?: IIROSE_Bot;
-}
+import type { MailboxMessageData } from './type';
 
 export interface Events
 {
