@@ -17,6 +17,7 @@ import { selfMove, SelfMove } from './messages/room/SelfMove';
 import { comparePassword } from '../utils/password';
 import { music, Music } from './messages/media/Music';
 import { stock, Stock } from './messages/system/consume/Stock';
+import { parseSelfStatus, SelfStatus } from './messages/user/profile/SelfStatus';
 import { IIROSE_Bot } from '../bot/bot';
 
 export const decoder = async (bot: IIROSE_Bot, msg: string): Promise<MessageType> =>
@@ -27,7 +28,8 @@ export const decoder = async (bot: IIROSE_Bot, msg: string): Promise<MessageType
   const bulkData = await bulkDataPacket(msg, bot);
   len.userlist = bulkData?.userList;
   len.roomState = bulkData?.roomState;
-  len.publicMessage = publicMessage(msg);
+  len.selfStatus = parseSelfStatus(msg, bot.selfId);
+  len.publicMessage = len.selfStatus ? undefined : publicMessage(msg);
   len.privateMessage = privateMessage(msg);
   len.memberUpdate = memberUpdate(msg);
   // len.switchRoom = switchRoom(msg);
@@ -54,12 +56,10 @@ export const decoder = async (bot: IIROSE_Bot, msg: string): Promise<MessageType
     // 如果对象属性的值不为空，就保存该属性（如果属性的值为0 false，保存该属性。如果属性的值全部是空格，属于为空。）
     if ((len[key] === 0 || len[key] === false || len[key]) && len[key].toString().replace(/(^\s*)|(\s*$)/g, '') !== '')
     {
-      if (key === 'manyMessage')
+      if (key === 'manyMessage' || key === 'selfStatus')
       {
         newObj[key] = len[key];
-      }
-
-      if (len[key].uid)
+      } else if (len[key].uid)
       {
         let uid = bot.ctx.config.uid;
 
@@ -83,6 +83,7 @@ export interface MessageType
   manyMessage?: ManyMessage[];
   userlist?: UserList[];
   roomState?: RoomState;
+  selfStatus?: SelfStatus;
   publicMessage?: PublicMessage;
   privateMessage?: PrivateMessage;
   memberUpdate?: MemberUpdateData;

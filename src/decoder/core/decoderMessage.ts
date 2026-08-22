@@ -13,6 +13,17 @@ export const decoderMessage = async (obj: MessageType, bot: IIROSE_Bot) =>
   {
     switch (key)
     {
+      case 'selfStatus': {
+        const data = obj.selfStatus;
+        if (!data) break;
+
+        bot.user.name = data.username;
+        bot.user.avatar = data.avatar;
+        bot.selfId = data.uid;
+        bot.userId = data.uid;
+        bot.fulllogInfo('机器人自身状态已更新', data);
+        break;
+      }
 
       case 'publicMessage': {
         if (!obj.publicMessage) return;
