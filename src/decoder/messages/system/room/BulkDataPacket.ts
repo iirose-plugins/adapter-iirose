@@ -251,6 +251,22 @@ export const bulkDataPacket = async (message: string, bot: IIROSE_Bot): Promise<
       }
     }
 
+    // iirose 的在线用户列表不包含机器人自身，手动补一条，保证 getUser/selfId 可用
+    const loginObj = bot.wsClient?.loginObj;
+    const loginUsername = loginObj?.n;
+    let self = loginUsername ? userList.find(user => user.username === loginUsername) : undefined;
+    if (!self && loginUsername)
+    {
+      self = {
+        avatar: bot.config.smStart ? bot.config.smImage || '' : bot.user?.avatar || '',
+        username: loginUsername,
+        color: bot.config.smStart ? bot.config.smColor || '' : bot.config.color || '',
+        room: loginObj?.r || bot.config.roomId,
+        uid: loginObj?.uid || (bot.config.smStart ? bot.config.smUid : bot.config.uid) || bot.config.uid,
+      };
+      userList.push(self);
+    }
+
     // 后处理：将用户关联到房间
     if (Object.keys(roomList).length > 0)
     {
@@ -308,27 +324,19 @@ export const bulkDataPacket = async (message: string, bot: IIROSE_Bot): Promise<
     // 触发一次银行信息查询
     bot.sendAndWaitForResponse(bankGet(), '>$', false);
 
-    // 异步更新机器人自身信息
-    (async () =>
+    // 更新机器人自身信息
+    if (self)
     {
-      try
-      {
-        const self = await bot.getSelf();
-        if (self)
-        {
-          bot.user.name = self.name;
-          bot.user.avatar = self.avatar;
-          bot.selfId = self.id;
-          bot.userId = self.id;
-        } else
-        {
-          bot.loggerWarn('更新机器人信息失败，未能从 userlist.json 中找到自身数据。请稍后重试。');
-        }
-      } catch (error)
-      {
-        bot.loggerError('更新机器人信息时出错:', error);
-      }
-    })();
+      bot.user.name = self.username;
+      bot.user.avatar = self.avatar;
+      bot.selfId = self.uid;
+      bot.userId = self.uid;
+    } else
+    {
+      const fallback = await bot.getSelf();
+      bot.user.name = fallback.name;
+      bot.user.avatar = fallback.avatar;
+    }
 
     return {
       userList,

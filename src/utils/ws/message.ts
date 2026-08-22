@@ -150,6 +150,10 @@ export function setupMessageHandler(
       {
         bot.logInfo(loginObj);
         bot.loggerInfo(`[${bot.config.uid}] 登陆成功：欢迎回来，${loginObj.n}！`);
+        if (bot.user)
+        {
+          bot.user.name = loginObj.n || bot.config.usename;
+        }
         bot.status = Universal.Status.ONLINE;
         bot.online();
 

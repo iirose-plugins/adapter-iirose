@@ -237,8 +237,19 @@ export class IIROSE_Bot extends Bot<Context>
 
   async getSelf(): Promise<Universal.User>
   {
-    // 直接调用getUser方法获取自身信息
-    return this.getUser(this.selfId);
+    const user = await this.getUser(this.selfId);
+    if (user.name !== Unknown_User_Name)
+    {
+      return user;
+    }
+
+    // userlist 缺失或 selfId 不一致时，用登录名回退，避免 WebUI 显示 Unknown User
+    const username = this.wsClient?.loginObj?.n || (this.config.smStart ? this.config.smUsername : this.config.usename);
+    return {
+      id: this.selfId,
+      name: username || this.user?.name || Unknown_User_Name,
+      avatar: this.user?.avatar,
+    };
   }
 
   /**
