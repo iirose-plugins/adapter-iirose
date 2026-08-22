@@ -37,7 +37,13 @@ export function setupMessageHandler(
 
     if (message.length < 500)
     {
-      bot.fulllogInfo(`[WS接收]`, message);
+      if (bot.config.fullDebugMode)
+      {
+        bot.fulllogInfo(`[WS接收]`, message);
+      } else
+      {
+        bot.logInfo(`[WS接收]`, message);
+      }
     }
 
     // 检查响应监听器

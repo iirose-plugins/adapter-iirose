@@ -7,6 +7,8 @@ export interface SelfStatus
   avatar: string;
   username: string;
   uid: string;
+  color: string;
+  room: string;
 }
 
 /**
@@ -28,5 +30,7 @@ export const parseSelfStatus = (message: string, selfId: string): SelfStatus | u
     avatar: parseAvatar(fields[1]),
     username: decode(fields[2]),
     uid,
+    color: fields[5] || '',
+    room: (fields[11] || '').split("'")[0],
   };
 };

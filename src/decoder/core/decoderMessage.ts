@@ -4,7 +4,7 @@ import { comparePassword } from '../../utils/password';
 import { MessageType } from '..';
 import { IIROSE_Bot } from '../../bot/bot';
 import { clearMsg } from './clearMsg';
-import { parseAvatar } from '../../utils/utils';
+import { parseAvatar, readJsonData, writeWJ } from '../../utils/utils';
 
 export const decoderMessage = async (obj: MessageType, bot: IIROSE_Bot) =>
 {
@@ -21,7 +21,28 @@ export const decoderMessage = async (obj: MessageType, bot: IIROSE_Bot) =>
         bot.user.avatar = data.avatar;
         bot.selfId = data.uid;
         bot.userId = data.uid;
-        bot.fulllogInfo('机器人自身状态已更新', data);
+        bot.logInfo('机器人自身状态已更新', data);
+
+        const userlist = await readJsonData(bot, 'wsdata/userlist.json');
+        if (Array.isArray(userlist))
+        {
+          const index = userlist.findIndex((user: { uid?: string }) => user?.uid === data.uid);
+          const selfEntry = {
+            avatar: data.avatar,
+            username: data.username,
+            color: data.color || (index >= 0 ? userlist[index].color : '') || bot.config.color,
+            room: data.room || (index >= 0 ? userlist[index].room : '') || bot.config.roomId,
+            uid: data.uid,
+          };
+          if (index >= 0)
+          {
+            userlist[index] = selfEntry;
+          } else
+          {
+            userlist.push(selfEntry);
+          }
+          await writeWJ(bot, 'wsdata/userlist.json', userlist);
+        }
         break;
       }
 
