@@ -1,4 +1,4 @@
-import { Context, h } from 'koishi';
+import { Context, h, sleep } from 'koishi';
 import { decode as unescapeHtml } from './entities';
 
 import { clearMsg } from '../decoder/core/clearMsg';
@@ -119,9 +119,34 @@ export const writeWJ = (bot: IIROSE_Bot, relativePath: string, data: any): Promi
       try
       {
         await fs.mkdir(path.dirname(filePath), { recursive: true });
-        await fs.writeFile(tempPath, JSON.stringify(data, null, 2), 'utf8');
-        await fs.rename(tempPath, filePath);
-        bot.logInfo(`[iirose-writeWJ] 数据已更新至: ${filePath}`);
+        const content = JSON.stringify(data, null, 2);
+        let written = false;
+
+        for (let attempt = 1; attempt <= 5; attempt++)
+        {
+          try
+          {
+            await fs.writeFile(tempPath, content, 'utf8');
+            await fs.rename(tempPath, filePath);
+            written = true;
+            break;
+          } catch (error)
+          {
+            if (attempt === 5)
+            {
+              // Windows 偶发 rename 被占用时，回退为直接写目标文件
+              await fs.writeFile(filePath, content, 'utf8');
+              written = true;
+              break;
+            }
+            await sleep(100 * attempt);
+          }
+        }
+
+        if (written)
+        {
+          bot.logInfo(`[iirose-writeWJ] 数据已更新至: ${filePath}`);
+        }
       } catch (error)
       {
         bot.logger.error(`[iirose-writeWJ] 写入 ${relativePath} 失败:`, error);
