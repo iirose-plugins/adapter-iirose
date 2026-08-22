@@ -24,13 +24,86 @@ export interface RoomInfo
   rooms?: string[];
 }
 
+export interface RoomMusicState
+{
+  audioUrl: string;
+  pageUrl: string;
+  duration: number;
+  name: string;
+  artist: string;
+  requester: string;
+  requesterGender: string;
+  cover: string;
+  requesterAvatar: string;
+  position: number;
+  lyrics: string;
+}
+
+export interface RoomState
+{
+  raw: string;
+  music?: RoomMusicState;
+}
+
+export interface BulkDataPacketResult
+{
+  userList: UserList[];
+  roomList: Record<string, unknown>;
+  roomState?: RoomState;
+}
+
+const parseProtocolUrl = (value: string): string =>
+{
+  if (value.startsWith('s://'))
+  {
+    return `https://${value.slice(4)}`;
+  }
+  if (value.startsWith('://'))
+  {
+    return `http://${value.slice(3)}`;
+  }
+  return value;
+};
+
+const parseRoomState = (raw: string): RoomState | undefined =>
+{
+  if (!raw) return undefined;
+
+  const fields = raw.split('>');
+  if (fields.length < 9)
+  {
+    return { raw };
+  }
+
+  const urls = fields[0].split(/\s+/);
+  const audioUrl = urls[0] || '';
+  const pageUrl = urls[1] || '';
+
+  return {
+    raw,
+    music: {
+      audioUrl: parseProtocolUrl(audioUrl.replace(/^%1/, '')),
+      pageUrl: parseProtocolUrl(pageUrl),
+      duration: Number(fields[1]) || 0,
+      name: fields[2] || '',
+      artist: (fields[3] || '').replace(/^@\d+/, ''),
+      requester: fields[4] || '',
+      requesterGender: fields[5] || '',
+      cover: parseProtocolUrl(fields[6] || ''),
+      requesterAvatar: fields[7] || '',
+      position: Number(fields[8]) || 0,
+      lyrics: fields[9] || '',
+    },
+  };
+};
+
 /**
  * 解析包含大量数据的包 (如用户列表、房间列表)
  * @param message 消息
  * @param bot bot实例
- * @returns {Promise<UserList[] | undefined>}
+ * @returns {Promise<BulkDataPacketResult | undefined>}
  */
-export const bulkDataPacket = async (message: string, bot: IIROSE_Bot): Promise<UserList[] | undefined> =>
+export const bulkDataPacket = async (message: string, bot: IIROSE_Bot): Promise<BulkDataPacketResult | undefined> =>
 {
   // 检查消息是否为大包数据
   if (message.startsWith('%'))
@@ -40,8 +113,27 @@ export const bulkDataPacket = async (message: string, bot: IIROSE_Bot): Promise<
       await writeWJ(bot, 'wsdata/message.log', message);
     }
 
-    // 移除起始标记 %*"
-    const rawData = message.substring(3);
+    let rawData: string;
+    let roomState: RoomState | undefined;
+
+    if (message.startsWith('%1'))
+    {
+      // 新版登录大包会在全员列表前附带房间状态，状态与列表之间用 "" 分隔
+      const stateDelimiterIndex = message.search(/""(?:https?:\/\/|(?:cartoon|anime|scenery|couple|female)\/)/);
+      const delimiterIndex = stateDelimiterIndex !== -1 ? stateDelimiterIndex : message.indexOf('""');
+      if (delimiterIndex !== -1)
+      {
+        roomState = parseRoomState(message.slice(0, delimiterIndex));
+        rawData = message.slice(delimiterIndex + 2);
+      } else
+      {
+        rawData = message.slice(2);
+      }
+    } else
+    {
+      // 旧格式：移除起始标记 %*"
+      rawData = message.startsWith('%*"') ? message.slice(3) : message.slice(1);
+    }
 
     // 使用 \" 作为最高层级分隔符，将数据分割成主要部分
     // parts[0] 包含用户和频道列表
@@ -169,13 +261,13 @@ export const bulkDataPacket = async (message: string, bot: IIROSE_Bot): Promise<
         for (const key in level)
         {
           const item = level[key];
+          if (!item || typeof item !== 'object') continue;
+
           if (item.id && item.name)
           { // 判断是房间对象
             roomMap.set(item.id, item);
-          } else if (typeof item === 'object' && item !== null)
-          { // 判断是嵌套的层级
-            collectRooms(item);
           }
+          collectRooms(item);
         }
       }
       collectRooms(roomList);
@@ -202,6 +294,12 @@ export const bulkDataPacket = async (message: string, bot: IIROSE_Bot): Promise<
     if (Object.keys(roomList).length > 0)
     {
       await writeWJ(bot, 'wsdata/roomlist.json', roomList);
+    }
+
+    // 缓存新版登录包前置的房间状态
+    if (roomState)
+    {
+      await writeWJ(bot, 'wsdata/roomState.json', roomState);
     }
 
     // 触发一次股价查询
@@ -232,7 +330,10 @@ export const bulkDataPacket = async (message: string, bot: IIROSE_Bot): Promise<
       }
     })();
 
-    // 返回用户列表
-    return userList;
+    return {
+      userList,
+      roomList,
+      roomState,
+    };
   }
 };

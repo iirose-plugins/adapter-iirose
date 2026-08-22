@@ -6,6 +6,7 @@ import { privateMessage, PrivateMessage } from './messages/PrivateMessage';
 import { MemberUpdateData, memberUpdate } from './messages/MemberUpdate';
 import { publicMessage, PublicMessage } from './messages/PublicMessage';
 import { bulkDataPacket, UserList } from './messages/BulkDataPacket';
+import type { RoomState } from './messages/BulkDataPacket';
 import { musicMessage, MusicMessage } from './messages/MusicMessage';
 import { bankCallback, BankCallback } from './messages/BankCallback';
 import { manyMessage, ManyMessage } from './messages/ManyMessage';
@@ -21,7 +22,9 @@ export const decoder = async (bot: IIROSE_Bot, msg: string): Promise<MessageType
   const len: any = {};
 
   len.manyMessage = manyMessage(msg, bot);
-  len.userlist = await bulkDataPacket(msg, bot);
+  const bulkData = await bulkDataPacket(msg, bot);
+  len.userlist = bulkData?.userList;
+  len.roomState = bulkData?.roomState;
   len.publicMessage = publicMessage(msg);
   len.privateMessage = privateMessage(msg);
   len.memberUpdate = memberUpdate(msg);
@@ -70,6 +73,7 @@ export interface MessageType
 {
   manyMessage?: ManyMessage[];
   userlist?: UserList[];
+  roomState?: RoomState;
   publicMessage?: PublicMessage;
   privateMessage?: PrivateMessage;
   memberUpdate?: MemberUpdateData;

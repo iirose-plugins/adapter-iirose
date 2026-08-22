@@ -482,6 +482,14 @@ export const decoderMessage = async (obj: MessageType, bot: IIROSE_Bot) =>
         break;
       }
 
+      case 'roomState': {
+        const data = obj.roomState;
+        if (!data) break;
+        bot.fulllogInfo('iirose/room-state', data);
+        bot.ctx.emit('iirose/room-state', data);
+        break;
+      }
+
       case 'broadcastAck': {
         if (!obj.broadcastAck) break;
         const remaining = await bot.internal.recordBroadcastAck();

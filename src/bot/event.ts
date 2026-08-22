@@ -4,6 +4,7 @@ import { BroadcastMessage } from '../decoder/messages/BroadcastMessage';
 import { Stock } from '../decoder/messages/Stock';
 import { BankCallback } from '../decoder/messages/BankCallback';
 import { MessageType } from '../decoder';
+import type { RoomState } from '../decoder/messages/BulkDataPacket';
 import { IIROSE_Bot } from './bot';
 export type { MailboxMessageData };
 
@@ -116,6 +117,7 @@ export interface Events
   'iirose/dislike'(session: Session, data: Extract<MailboxMessageData, { type: 'dislike'; }>): void;
   'iirose/payment'(session: Session, data: Extract<MailboxMessageData, { type: 'payment'; }>): void;
   'iirose/broadcast'(session: Session, data: BroadcastMessage): void;
+  'iirose/room-state'(state: RoomState): void;
   'iirose/broadcast-ack'(remaining: number): void;
   'iirose/stock-update'(stockData: Stock): void;
   'iirose/bank-update'(bankData: BankCallback): void;

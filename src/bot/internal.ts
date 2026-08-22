@@ -60,6 +60,7 @@ import getPendingReviewOrdersFunction from '../encoder/system/store/personal/ord
 import getPendingReceiptOrdersFunction from '../encoder/system/store/personal/orders/getPendingReceiptOrders';
 import getPendingPaymentOrdersFunction from '../encoder/system/store/personal/orders/getPendingPaymentOrders';
 import getPendingConfirmationOrdersFunction from '../encoder/system/store/personal/orders/getPendingConfirmationOrders';
+import type { RoomState } from '../decoder/messages/BulkDataPacket';
 
 const DEFAULT_BROADCAST_LIMIT = 10;
 const BROADCAST_COUNT_FILE = 'wsdata/broadcastCount.json';
@@ -365,6 +366,15 @@ export class Internal
   async getRoomListFile(): Promise<any>
   {
     return await readJsonData(this.bot, 'wsdata/roomlist.json');
+  }
+
+  /**
+   * 获取 roomState.json 的内容
+   * @returns roomState.json 的解析后数据
+   */
+  async getRoomStateFile(): Promise<RoomState | null>
+  {
+    return await readJsonData(this.bot, 'wsdata/roomState.json') as RoomState | null;
   }
 
   /**
@@ -693,6 +703,7 @@ export interface InternalType
   getUserByName(name: string): Promise<Universal.User | undefined>;
   getUserListFile(): Promise<any>;
   getRoomListFile(): Promise<any>;
+  getRoomStateFile(): Promise<RoomState | null>;
   getRoomId(): string;
   subscribeRoom(roomId: string): void;
   unsubscribeRoom(roomId: string): void;

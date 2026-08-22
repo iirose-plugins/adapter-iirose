@@ -23,6 +23,7 @@ export * from './bot/bot';
 export * from './utils/ws';
 export * from './utils/changelog';
 export * from './bot/event';
+export type { RoomState } from './decoder/messages/BulkDataPacket';
 
 declare module 'koishi' {
   interface Events extends IIROSE.Events { }
