@@ -40,6 +40,15 @@ export interface Config
   smvc?: string;
 }
 
+/** 去掉配置项中常见的 IIROSE 标记，如 [_id_]、[*用户名*]、[@uid@] */
+export const stripMarkup = (value: string, prefix: string, suffix: string): string =>
+{
+  const trimmed = value.trim();
+  return trimmed.startsWith(prefix) && trimmed.endsWith(suffix)
+    ? trimmed.slice(prefix.length, trimmed.length - suffix.length).trim()
+    : trimmed;
+};
+
 /** 统一去除所有字符串配置项的首尾空格 */
 export const normalizeConfig = (config: Config): Config =>
 {
@@ -52,6 +61,43 @@ export const normalizeConfig = (config: Config): Config =>
       result[key] = value.trim();
     }
   }
+
+  const uid = result.uid;
+  if (typeof uid === 'string')
+  {
+    result.uid = stripMarkup(uid, '[@', '@]').toLowerCase();
+  }
+
+  const roomId = result.roomId;
+  if (typeof roomId === 'string')
+  {
+    result.roomId = stripMarkup(roomId, '[_', '_]').toLowerCase();
+  }
+
+  const usename = result.usename;
+  if (typeof usename === 'string')
+  {
+    result.usename = stripMarkup(usename, '[*', '*]');
+  }
+
+  const smUid = result.smUid;
+  if (typeof smUid === 'string')
+  {
+    result.smUid = stripMarkup(smUid, '[@', '@]').toLowerCase();
+  }
+
+  const smRoom = result.smRoom;
+  if (typeof smRoom === 'string')
+  {
+    result.smRoom = stripMarkup(smRoom, '[_', '_]').toLowerCase();
+  }
+
+  const smUsername = result.smUsername;
+  if (typeof smUsername === 'string')
+  {
+    result.smUsername = stripMarkup(smUsername, '[*', '*]');
+  }
+
   return result as unknown as Config;
 };
 

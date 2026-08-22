@@ -1,5 +1,6 @@
 import { Context } from 'koishi';
 import { IIROSE_Bot } from '../../bot/bot';
+import { stripMarkup } from '../../config';
 import { LoginObj } from './types';
 import { getMd5Password, md5 } from '../password';
 import { calculateRetryDelay, waitWithCancel } from './retry';
@@ -254,13 +255,10 @@ export async function prepareConnection(
  */
 export function createLoginObj(bot: IIROSE_Bot): LoginObj
 {
-  const roomIdReg = /\s*\[_([\\s\\S]+)_\]\s*/;
-  const userNameReg = /\s*\[\\*([\\s\\S]+)\\*\]\s*/;
-
-  const roomIdConfig = bot.config.roomId.trim();
-  const userNameConfig = bot.config.usename.trim();
-  let username = ((userNameReg.test(userNameConfig)) ? userNameConfig.match(userNameReg)?.[1] : userNameConfig)?.trim() || userNameConfig;
-  let room = ((roomIdReg.test(roomIdConfig)) ? roomIdConfig.match(roomIdReg)?.[1] : roomIdConfig)?.trim() || roomIdConfig;
+  const roomIdConfig = stripMarkup(bot.config.roomId, '[_', '_]');
+  const userNameConfig = stripMarkup(bot.config.usename, '[*', '*]');
+  const username = userNameConfig;
+  const room = roomIdConfig;
 
   let loginObj: LoginObj;
 
