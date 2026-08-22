@@ -1,5 +1,6 @@
 import { mailboxMessage, MailboxMessageData } from './messages/MailboxMessage';
 import { BroadcastMessage, broadcastMessage } from './messages/BroadcastMessage';
+import { broadcastAck } from './messages/BroadcastAck';
 import { MessageDeleted, MessageDeletedData } from './messages/MessageDeleted';
 import { privateMessage, PrivateMessage } from './messages/PrivateMessage';
 import { MemberUpdateData, memberUpdate } from './messages/MemberUpdate';
@@ -33,6 +34,7 @@ export const decoder = async (bot: IIROSE_Bot, msg: string): Promise<MessageType
   len.stock = stock(msg, bot);
   len.messageDeleted = MessageDeleted(bot, msg);
   len.broadcastMessage = broadcastMessage(msg);
+  len.broadcastAck = broadcastAck(msg);
 
   const newObj = {};
   for (const key in len)
@@ -80,4 +82,5 @@ export interface MessageType
   stock?: Stock;
   messageDeleted?: MessageDeletedData;
   broadcastMessage?: BroadcastMessage;
+  broadcastAck?: boolean;
 }

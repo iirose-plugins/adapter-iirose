@@ -38,21 +38,14 @@ const parseSingleMemberUpdate = (message: string): MemberUpdateData | void =>
   // 标识符: parts[3] === "'1"
   // e.g. >>15fdcb9b634621'n''' (新加入)
   // e.g. >>15fdcb9b634621'd''' (重连)
+  // 新版本末尾还会附加头像 URL，因此不能只从字符串尾部找状态字符。
   if (parts[3] === "'1")
   {
-    let status = '';
-    // 从后向前遍历，找到最后一个不是 "'" 的字符
-    for (let i = lastPart.length - 1; i >= 0; i--)
-    {
-      if (lastPart[i] !== "'")
-      {
-        status = lastPart[i];
-        break;
-      }
-    }
+    const joinStatusMatch = lastPart.match(/^[^']*'([nd])/);
 
-    if (status === 'n' || status === 'd')
+    if (joinStatusMatch)
     {
+      const status = joinStatusMatch[1];
       return {
         type: 'join',
         timestamp,
@@ -60,6 +53,9 @@ const parseSingleMemberUpdate = (message: string): MemberUpdateData | void =>
         username,
         uid,
         joinType: status === 'n' ? 'new' : 'reconnect',
+        color: parts[5],
+        title: parts[9] === "'108" ? '花瓣' : parts[9],
+        room: lastPart.split("'")[0],
       };
     }
   }

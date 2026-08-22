@@ -18,7 +18,7 @@ import { Tasks, parseTasks } from '../decoder/messages/Tasks';
 import cutOneFunction from '../encoder/admin/media/media_cut';
 import broadcastFunction from '../encoder/messages/broadcast';
 import noticeFunction from '../encoder/admin/manage/notice';
-import { findUserIdByName, readJsonData } from '../utils/utils';
+import { findUserIdByName, readJsonData, writeWJ } from '../utils/utils';
 import getTasksFunction from '../encoder/system/tasks/getTasks';
 import getForumFunction from '../encoder/system/forum/getForum';
 import getStoreFunction from '../encoder/system/store/getStore';
@@ -60,6 +60,9 @@ import getPendingReviewOrdersFunction from '../encoder/system/store/personal/ord
 import getPendingReceiptOrdersFunction from '../encoder/system/store/personal/orders/getPendingReceiptOrders';
 import getPendingPaymentOrdersFunction from '../encoder/system/store/personal/orders/getPendingPaymentOrders';
 import getPendingConfirmationOrdersFunction from '../encoder/system/store/personal/orders/getPendingConfirmationOrders';
+
+const DEFAULT_BROADCAST_LIMIT = 10;
+const BROADCAST_COUNT_FILE = 'wsdata/broadcastCount.json';
 
 export class Internal
 {
@@ -143,6 +146,42 @@ export class Internal
   broadcast(broadcast: eventType.broadcast)
   {
     IIROSE_WSsend(this.bot, broadcastFunction(broadcast.message, broadcast.color));
+  }
+
+  /**
+   * 获取今日剩余广播次数
+   */
+  async getBroadcastRemaining(): Promise<number>
+  {
+    const cache = await readJsonData(this.bot, BROADCAST_COUNT_FILE);
+    const today = this.getTodayDate();
+    if (!cache || cache.date !== today || cache.botId !== this.bot.config.uid.trim())
+    {
+      return DEFAULT_BROADCAST_LIMIT;
+    }
+    return typeof cache.remaining === 'number' && cache.remaining >= 0
+      ? Math.floor(cache.remaining)
+      : DEFAULT_BROADCAST_LIMIT;
+  }
+
+  /**
+   * 收到广播回执后扣减今日剩余次数
+   */
+  async recordBroadcastAck(): Promise<number>
+  {
+    const remaining = Math.max(0, await this.getBroadcastRemaining() - 1);
+    await writeWJ(this.bot, BROADCAST_COUNT_FILE, {
+      botId: this.bot.config.uid.trim(),
+      remaining,
+      date: this.getTodayDate(),
+    });
+    return remaining;
+  }
+
+  private getTodayDate(): string
+  {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   }
 
   /**
@@ -633,6 +672,8 @@ export interface InternalType
   setMaxUser(setMaxUser?: eventType.setMaxUser): void;
   whiteList(whiteList: eventType.whiteList): void;
   broadcast(broadcast: eventType.broadcast): void;
+  getBroadcastRemaining(): Promise<number>;
+  recordBroadcastAck(): Promise<number>;
   sendRoomNotice(notice: string): void;
   makeMusic(musicOrigin: eventType.musicOrigin): void;
   stockBuy(numberData: number): void;

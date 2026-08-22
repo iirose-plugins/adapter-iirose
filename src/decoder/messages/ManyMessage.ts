@@ -166,9 +166,10 @@ export const manyMessage = (input: string, bot: IIROSE_Bot) =>
           }
           if (tmp[3] === "'1")
           {
+            const joinStatusMatch = tmp[11].match(/^[^']*'([nd])/);
             const memberUpdateData = {
               type: 'join',
-              joinType: 'new',
+              joinType: joinStatusMatch && joinStatusMatch[1] === 'd' ? 'reconnect' : 'new',
               timestamp: Number(tmp[0]),
               avatar: parseAvatar(tmp[1]),
               username: decode(tmp[2]),

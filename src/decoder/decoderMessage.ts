@@ -482,6 +482,14 @@ export const decoderMessage = async (obj: MessageType, bot: IIROSE_Bot) =>
         break;
       }
 
+      case 'broadcastAck': {
+        if (!obj.broadcastAck) break;
+        const remaining = await bot.internal.recordBroadcastAck();
+        bot.fulllogInfo('iirose/broadcast-ack', remaining);
+        bot.ctx.emit('iirose/broadcast-ack', remaining);
+        break;
+      }
+
       case 'musicMessage': {
         const data = obj.musicMessage;
         if (!data) return;
