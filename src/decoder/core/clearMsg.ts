@@ -1,5 +1,5 @@
 import { h } from 'koishi';
-import { IIROSE_Bot } from '../bot/bot';
+import { IIROSE_Bot } from '../../bot/bot';
 
 export async function clearMsg(msg: string, bot: IIROSE_Bot)
 {

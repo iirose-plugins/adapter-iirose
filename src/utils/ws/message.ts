@@ -2,7 +2,7 @@ import { Universal, sleep } from 'koishi';
 import * as zlib from 'node:zlib';
 import { IIROSE_Bot } from '../../bot/bot';
 import { decoder } from '../../decoder';
-import { decoderMessage } from '../../decoder/decoderMessage';
+import { decoderMessage } from '../../decoder/core/decoderMessage';
 import { LoginObj } from './types';
 
 /**

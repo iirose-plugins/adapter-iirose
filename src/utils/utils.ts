@@ -1,7 +1,7 @@
 import { Context, h } from 'koishi';
 import { decode as unescapeHtml } from './entities';
 
-import { clearMsg } from '../decoder/clearMsg';
+import { clearMsg } from '../decoder/core/clearMsg';
 import { IIROSE_Bot } from '../bot/bot';
 
 import * as fs from 'node:fs/promises';
