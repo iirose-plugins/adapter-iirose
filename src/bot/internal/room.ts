@@ -10,36 +10,47 @@ import type { RoomState } from '../../decoder/messages/system/room/BulkDataPacke
 export const roomMethods = {
   async joinRoom(this: Internal, moveData: move)
   {
-    const roomId = moveData.roomId;
+    await this.moveRoom(moveData.roomId, moveData.roomPassword);
+  },
+
+  async moveRoom(this: Internal, roomId: string, roomPassword?: string)
+  {
     if (!roomId)
     {
-      if (this.bot.config.roomId === roomId)
-      {
-        return this.bot.loggerError('移动房间失败，当前所在房间已为目标房间 ');
-      }
-      this.bot.config.roomId = this.bot.config.roomId;
-      return this.bot.loggerError(`移动房间失败，目标房间为: ${roomId}，已经自动移动到默认房间`);
+      return this.bot.loggerError('移动房间失败，未提供目标房间 ID');
     }
 
     if (this.bot.config.roomId === roomId)
     {
-      return this.bot.loggerError('移动房间失败，当前所在房间已为目标房间 ');
+      return this.bot.loggerError('移动房间失败，当前已在目标房间');
     }
 
-    this.bot.config.oldRoomId = this.bot.config.roomId;
+    const previousRoomId = this.bot.config.roomId;
+    const previousRoomPassword = this.bot.config.roomPassword;
+
+    this.bot.config.oldRoomId = previousRoomId;
     this.bot.config.roomId = roomId;
-    this.bot.config.roomPassword = moveData.roomPassword;
+    this.bot.config.roomPassword = roomPassword;
+
+    const response = await this.bot.sendAndWaitForResponse(
+      moveRoomFunction(roomId, roomPassword),
+      'm',
+      true,
+    );
+
+    if (response !== 'm')
+    {
+      this.bot.config.oldRoomId = undefined;
+      this.bot.config.roomId = previousRoomId;
+      this.bot.config.roomPassword = previousRoomPassword;
+      return this.bot.loggerError(`移动房间失败，目标房间: ${roomId}，回执: ${response ?? '超时'}`);
+    }
 
     if (this.bot.wsClient)
     {
       await this.bot.wsClient.switchRoom();
       this.bot.loggerInfo(`移动到房间: ${roomId}`);
     }
-  },
-
-  moveRoom(this: Internal, roomId: string, roomPassword?: string)
-  {
-    IIROSE_WSsend(this.bot, moveRoomFunction(roomId, roomPassword));
   },
 
   getRoomId(this: Internal): string
