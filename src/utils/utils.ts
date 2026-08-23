@@ -1,5 +1,6 @@
 import { Context, h, sleep } from 'koishi';
 import { decode as unescapeHtml } from './entities';
+import { parseBuffer } from 'music-metadata';
 
 import { clearMsg } from '../decoder/core/clearMsg';
 import { IIROSE_Bot } from '../bot/bot';
@@ -298,8 +299,7 @@ export async function getMediaMetadata(url: string, ctx: Context)
   {
     const { data, type } = await ctx.http.file(url);
     const buffer = Buffer.from(data);
-    const musicMetadata = await import('music-metadata');
-    const metadata = await musicMetadata.parseBuffer(buffer, type, { duration: true });
+    const metadata = await parseBuffer(buffer, type, { duration: true });
     const { common, format } = metadata;
 
     return {

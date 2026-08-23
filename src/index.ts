@@ -22,6 +22,7 @@ export const usage = readFileSync(join(__dirname, "./../data/usage.html"), 'utf-
 export * from './bot/bot';
 export * from './utils/ws';
 export * from './utils/changelog';
+export { getMediaMetadata } from './utils/utils';
 export * from './bot/event';
 export * from './bot/type';
 export type { MailboxMessageData } from './decoder/messages/system/mailbox/MailboxMessage';
