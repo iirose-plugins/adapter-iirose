@@ -144,7 +144,7 @@ export const userMethods = {
     const response = await this.bot.sendAndWaitForResponse(getUserProfileByNameFunction(username), '+', true);
     if (response)
     {
-      return parseUserProfileByName(response, this.bot);
+      return parseUserProfileByName(response, this.bot, username);
     }
     return null;
   },
