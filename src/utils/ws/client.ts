@@ -32,6 +32,7 @@ export class WsClient
   firstLogin: boolean = false;
   loginSuccess: boolean = false;
   isReconnecting: boolean = false;
+  movingRoom: boolean = false;
 
   constructor(ctx: Context, bot: IIROSE_Bot)
   {
@@ -503,6 +504,7 @@ export class WsClient
   {
     const wasReconnecting = this.isReconnecting;
 
+    this.movingRoom = true;
     this.isReconnecting = true;
     this.isStarting = false;
     this.isStarted = false;
@@ -513,6 +515,7 @@ export class WsClient
       await this.start();
     } catch (error)
     {
+      this.movingRoom = false;
       this.bot.loggerError('房间切换失败:', error);
       throw error;
     } finally

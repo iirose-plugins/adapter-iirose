@@ -28,7 +28,7 @@ export async function IIROSE_WSsend(bot: IIROSE_Bot, data: string): Promise<void
 
       if (bot.socket.readyState === 0)
       {
-        bot.loggerError('布豪！ bot.socket.readyState == 0 !!! 请联系开发者');
+        bot.logInfo('WebSocket 连接中，跳过本次发送');
         return;
       }
 

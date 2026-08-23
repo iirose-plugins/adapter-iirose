@@ -171,13 +171,43 @@ export function setupMessageHandler(
         bot.status = Universal.Status.ONLINE;
         bot.online();
 
-        const session = bot.session({
-          type: 'login-added',
-          platform: bot.platform,
-          selfId: bot.selfId,
-        });
-        bot.dispatch(session);
-        bot.fulllogInfo('login-added', session);
+        const isMovingRoom = bot.wsClient?.movingRoom ?? false;
+        if (isMovingRoom)
+        {
+          bot.wsClient.movingRoom = false;
+          const switchRoomData = {
+            timestamp: Date.now(),
+            avatar: bot.user?.avatar || '',
+            username: loginObj.n || bot.config.usename,
+            color: bot.config.color,
+            uid: bot.selfId,
+            title: '',
+            room: bot.config.oldRoomId || '',
+            targetRoom: bot.config.roomId,
+          };
+          const switchRoomSession = bot.session({
+            type: 'iirose/guild-member-switchRoom',
+            platform: bot.platform,
+            guild: { id: bot.config.roomId },
+            timestamp: switchRoomData.timestamp,
+            user: {
+              id: bot.selfId,
+              name: switchRoomData.username,
+            },
+            _data: switchRoomData,
+          });
+          bot.fulllogInfo('iirose/guild-member-switchRoom', switchRoomSession, switchRoomData);
+          bot.ctx.emit('iirose/guild-member-switchRoom', switchRoomSession, switchRoomData);
+        } else
+        {
+          const session = bot.session({
+            type: 'login-added',
+            platform: bot.platform,
+            selfId: bot.selfId,
+          });
+          bot.dispatch(session);
+          bot.fulllogInfo('login-added', session);
+        }
 
         onFirstLogin();
         const selfName = loginObj.n || bot.config.usename;
