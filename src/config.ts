@@ -103,11 +103,11 @@ export const normalizeConfig = (config: Config): Config =>
 
 export const Config: Schema<Config> = Schema.intersect([
   Schema.object({
-    usename: Schema.string().required().description('BOT的用户名<br>`不带[**]的部分`'),
-    uid: Schema.string().required().description('BOT的唯一标识<br>`不带[@@]的部分`<br>必须是`数字、小写字母`的组合').pattern(/[a-z0-9]{13}/),
+    usename: Schema.string().required().description('BOT的用户名'),
+    uid: Schema.string().required().description('BOT的唯一标识').pattern(/^\s*(?:\[@[a-zA-Z0-9]{13}@\]|[a-zA-Z0-9]{13})\s*$/),
     password: Schema.string().required().role('secret').description('BOT的登录密码'),
-    roomId: Schema.string().required().description('BOT的初始房间地址<br>`不带[__]的部分`<br>必须是`数字、小写字母`的组合').pattern(/([a-z0-9]{13})/),
-    roomPassword: Schema.string().default(null).description('BOT的初始房间地址的 房间密码 (一般不需要写)'),
+    roomId: Schema.string().required().description('BOT的初始登录房间地址').pattern(/^\s*(?:\[_[a-zA-Z0-9]{13}_\]|[a-zA-Z0-9]{13})\s*$/),
+    roomPassword: Schema.string().default(null).description('BOT的初始登录房间地址的 房间密码 (默认留空 代表 无需密码)'),
   }).description('基础设置'),
 
   Schema.object({
