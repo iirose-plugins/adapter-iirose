@@ -29,6 +29,7 @@ export type { MailboxMessageData } from './decoder/messages/system/mailbox/Mailb
 export type { RoomState } from './decoder/messages/system/room/BulkDataPacket';
 export type { MediaWhitelistEntry, MediaWhitelistEvent } from './decoder/messages/admin/manage/MediaWhitelist';
 export type { RoomRestrictionEvent, MuteListEntry, MuteEvent, BlacklistEvent } from './decoder/messages/admin/manage/RoomRestriction';
+export type { FullUserProfileByName } from './decoder/messages/user/profile/FullUserProfileByName';
 
 declare module 'koishi' {
   interface Events extends IIROSE.Events { }

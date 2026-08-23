@@ -11,7 +11,7 @@ import { Leaderboard } from '../../decoder/messages/system/leaderboard/Leaderboa
 import { SellerCenter } from '../../decoder/messages/system/store/SellerCenter';
 import { SelfInfo } from '../../decoder/messages/user/profile/SelfInfo';
 import { GradeUserCallback } from '../../decoder/messages/user/grade/GradeUserCallback';
-import { UserProfileByName } from '../../decoder/messages/user/profile/UserProfileByName';
+import { FullUserProfileByName } from '../../decoder/messages/user/profile/FullUserProfileByName';
 import { MediaListItem } from '../../encoder/system/media/getMusicList';
 import { FollowList } from '../../encoder/user/follow/followList';
 import { PaymentCallback } from '../../encoder/user/payment';
@@ -108,6 +108,7 @@ export interface InternalType
   getFollowedStores(): Promise<string | null>;
   getBalance(): Promise<number | null>;
   summonDice(diceId: number): void;
-  getUserProfileByName(username: string): Promise<UserProfileByName | null>;
+  getUserProfileByName(username: string): Promise<FullUserProfileByName | null>;
+  getFullUserProfileByName(username: string): Promise<FullUserProfileByName | null>;
   getChangelog(): Promise<ChangelogData | null>;
 }

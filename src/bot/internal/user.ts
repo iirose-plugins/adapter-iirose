@@ -15,7 +15,8 @@ import { getFollowAndFansPacket, parseFollowAndFans, FollowList } from '../../en
 import { GradeUserCallback, parseGradeUserCallback } from '../../decoder/messages/user/grade/GradeUserCallback';
 import { UserMoments, parseUserMoments } from '../../decoder/messages/user/moments/UserMoments';
 import { SelfInfo, parseSelfInfo } from '../../decoder/messages/user/profile/SelfInfo';
-import { parseUserProfileByName, UserProfileByName } from '../../decoder/messages/user/profile/UserProfileByName';
+import { parseUserProfileByName } from '../../decoder/messages/user/profile/UserProfileByName';
+import { parseFullUserProfileByName, FullUserProfileByName } from '../../decoder/messages/user/profile/FullUserProfileByName';
 
 export const userMethods = {
   sendLike(this: Internal, uid: string, message?: string)
@@ -139,12 +140,22 @@ export const userMethods = {
     return response === '$#';
   },
 
-  async getUserProfileByName(this: Internal, username: string): Promise<UserProfileByName | null>
+  async getUserProfileByName(this: Internal, username: string): Promise<FullUserProfileByName | null>
   {
     const response = await this.bot.sendAndWaitForResponse(getUserProfileByNameFunction(username), '+', true);
     if (response)
     {
       return parseUserProfileByName(response, this.bot, username);
+    }
+    return null;
+  },
+
+  async getFullUserProfileByName(this: Internal, username: string): Promise<FullUserProfileByName | null>
+  {
+    const response = await this.bot.sendAndWaitForResponse(getUserProfileByNameFunction(username), '+', true);
+    if (response)
+    {
+      return parseFullUserProfileByName(response, this.bot, username);
     }
     return null;
   },
