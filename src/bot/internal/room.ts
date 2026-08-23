@@ -2,13 +2,13 @@ import type { Internal } from './base';
 import type { move } from '../type';
 import { IIROSE_WSsend } from '../../utils/ws';
 import { readJsonData } from '../../utils/utils';
-import moveRoomStartFunction from '../../encoder/system/room/moveRoomStart';
+import moveRoomFunction from '../../encoder/system/room/moveRoom';
 import subscribeRoomFunction from '../../encoder/system/room/subscribeRoom';
 import unsubscribeRoomFunction from '../../encoder/system/room/unsubscribeRoom';
 import type { RoomState } from '../../decoder/messages/system/room/BulkDataPacket';
 
 export const roomMethods = {
-  async moveRoom(this: Internal, moveData: move)
+  async joinRoom(this: Internal, moveData: move)
   {
     const roomId = moveData.roomId;
     if (!roomId)
@@ -37,9 +37,9 @@ export const roomMethods = {
     }
   },
 
-  moveRoomStart(this: Internal, roomId: string, roomPassword?: string)
+  moveRoom(this: Internal, roomId: string, roomPassword?: string)
   {
-    IIROSE_WSsend(this.bot, moveRoomStartFunction(roomId, roomPassword));
+    IIROSE_WSsend(this.bot, moveRoomFunction(roomId, roomPassword));
   },
 
   getRoomId(this: Internal): string

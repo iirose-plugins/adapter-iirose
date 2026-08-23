@@ -24,8 +24,8 @@ import type { MuteListEntry } from '../../decoder/messages/admin/manage/RoomRest
 
 export interface InternalType
 {
-  moveRoom(moveData: eventType.move): Promise<void>;
-  moveRoomStart(roomId: string, roomPassword?: string): void;
+  joinRoom(moveData: eventType.move): Promise<void>;
+  moveRoom(roomId: string, roomPassword?: string): void;
   requestUserList(): void;
   kick(kickData: eventType.kickData): void;
   cutOne(cutOne?: eventType.cutOne): void;
