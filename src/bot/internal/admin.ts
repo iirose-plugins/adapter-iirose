@@ -15,6 +15,9 @@ import { parseMediaWhitelistList, MEDIA_WHITELIST_LIST_PREFIX, MEDIA_WHITELIST_A
 import { parseMuteList, parseBlacklistList, isRoomRestrictionAck, SPEECH_RESTRICTION_PREFIX, MUSIC_RESTRICTION_PREFIX, BOTH_RESTRICTION_PREFIX, MUTE_LIST_PREFIX, MUTE_ADD_ACK_PREFIXES, MUTE_REMOVE_ACK_PREFIXES, MUTE_CLEAR_ACK_PREFIXES, BLACKLIST_LIST_PREFIX, BLACKLIST_ADD_ACK_PREFIXES, BLACKLIST_REMOVE_ACK_PREFIXES, BLACKLIST_CLEAR_ACK_PREFIXES, type MuteListEntry } from '../../decoder/messages/admin/manage/RoomRestriction';
 import { parseMaxUserLimit, parseMaxGuestLimit, parseMinImpressionLimit, MAX_USER_QUERY_PREFIX, MAX_USER_SET_ACK_PREFIX, MAX_GUEST_QUERY_PREFIX, MAX_GUEST_SET_ACK_PREFIX, MIN_IMPRESSION_QUERY_PREFIX, MIN_IMPRESSION_SET_ACK_PREFIX } from '../../decoder/messages/admin/manage/RoomLimit';
 
+const isAckSuccess = (response: string | null): boolean =>
+  response !== null && !response.startsWith('_~m');
+
 export const adminMethods = {
   kick(this: Internal, kickData: kickData)
   {
@@ -82,19 +85,19 @@ export const adminMethods = {
   {
     const time = formatDuration(duration);
     const response = await sendAndWaitForResponsePrefixes(this.bot, mediaWhitelistAdd(username, time, intro), MEDIA_WHITELIST_ADD_ACK_PREFIXES);
-    return response !== null;
+    return isAckSuccess(response);
   },
 
   async removeMediaWhitelist(this: Internal, uid: string): Promise<boolean>
   {
     const response = await sendAndWaitForResponsePrefixes(this.bot, mediaWhitelistRemove(uid), MEDIA_WHITELIST_REMOVE_ACK_PREFIXES);
-    return response !== null;
+    return isAckSuccess(response);
   },
 
   async clearMediaWhitelist(this: Internal): Promise<boolean>
   {
     const response = await sendAndWaitForResponsePrefixes(this.bot, mediaWhitelistClear(), MEDIA_WHITELIST_CLEAR_ACK_PREFIXES);
-    return response !== null;
+    return isAckSuccess(response);
   },
 
   async setRoomSpeechLevel(this: Internal, level: RoomRestrictionLevel): Promise<boolean>
@@ -126,19 +129,19 @@ export const adminMethods = {
   {
     const time = formatDuration(duration);
     const response = await sendAndWaitForResponsePrefixes(this.bot, muteFunction(type, username, time, intro), MUTE_ADD_ACK_PREFIXES);
-    return response !== null;
+    return isAckSuccess(response);
   },
 
   async unmuteUser(this: Internal, uid: string): Promise<boolean>
   {
     const response = await sendAndWaitForResponsePrefixes(this.bot, unmuteFunction(uid), MUTE_REMOVE_ACK_PREFIXES);
-    return response !== null;
+    return isAckSuccess(response);
   },
 
   async clearMuteList(this: Internal): Promise<boolean>
   {
     const response = await sendAndWaitForResponsePrefixes(this.bot, clearMuteListFunction(), MUTE_CLEAR_ACK_PREFIXES);
-    return response !== null;
+    return isAckSuccess(response);
   },
 
   async getBlacklist(this: Internal): Promise<MediaWhitelistEntry[] | null>
@@ -152,18 +155,18 @@ export const adminMethods = {
   {
     const time = formatDuration(duration);
     const response = await sendAndWaitForResponsePrefixes(this.bot, blackListFunction(username, time, intro), BLACKLIST_ADD_ACK_PREFIXES);
-    return response !== null;
+    return isAckSuccess(response);
   },
 
   async removeBlacklist(this: Internal, uid: string): Promise<boolean>
   {
     const response = await sendAndWaitForResponsePrefixes(this.bot, blackListRemove(uid), BLACKLIST_REMOVE_ACK_PREFIXES);
-    return response !== null;
+    return isAckSuccess(response);
   },
 
   async clearBlacklist(this: Internal): Promise<boolean>
   {
     const response = await sendAndWaitForResponsePrefixes(this.bot, blackListClear(), BLACKLIST_CLEAR_ACK_PREFIXES);
-    return response !== null;
+    return isAckSuccess(response);
   },
 };

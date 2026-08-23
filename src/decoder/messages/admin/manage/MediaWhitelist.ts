@@ -15,9 +15,9 @@ export interface MediaWhitelistEvent
 }
 
 export const MEDIA_WHITELIST_LIST_PREFIX = 'a2';
-export const MEDIA_WHITELIST_ADD_ACK_PREFIXES = ['_~F', '_~X', 'qw'];
-export const MEDIA_WHITELIST_REMOVE_ACK_PREFIXES = ['qW', '_~F', '_~X'];
-export const MEDIA_WHITELIST_CLEAR_ACK_PREFIXES = ['qW', '_~F', '_~X'];
+export const MEDIA_WHITELIST_ADD_ACK_PREFIXES = ['_~F', '_~X', 'qw', '_~m1'];
+export const MEDIA_WHITELIST_REMOVE_ACK_PREFIXES = ['qW', '_~F', '_~X', '_~m1'];
+export const MEDIA_WHITELIST_CLEAR_ACK_PREFIXES = ['qW', '_~F', '_~X', '_~m1'];
 
 /**
  * 解析“限制发言&点播”白名单列表

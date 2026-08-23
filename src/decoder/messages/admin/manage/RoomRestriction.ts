@@ -18,6 +18,7 @@ export interface MuteListEntry
 export interface MuteEvent
 {
   type: 'added' | 'removed';
+  username?: string;
   expireAt?: number;
   intro?: string;
   roomId?: string;
@@ -37,14 +38,14 @@ export const MUSIC_RESTRICTION_PREFIX = '_~@';
 export const BOTH_RESTRICTION_PREFIX = '_~#';
 
 export const MUTE_LIST_PREFIX = 'a2';
-export const MUTE_ADD_ACK_PREFIXES = ['_~F', '_~*', 'q3'];
-export const MUTE_REMOVE_ACK_PREFIXES = ['q#', '_~F', '_~*'];
-export const MUTE_CLEAR_ACK_PREFIXES = ['q#', '_~F', '_~*', '_~E'];
+export const MUTE_ADD_ACK_PREFIXES = ['_~F', '_~*', 'q3', '_~m1'];
+export const MUTE_REMOVE_ACK_PREFIXES = ['q#', '_~F', '_~*', '_~m1'];
+export const MUTE_CLEAR_ACK_PREFIXES = ['q#', '_~F', '_~*', '_~E', '_~m1'];
 
 export const BLACKLIST_LIST_PREFIX = 'a2';
-export const BLACKLIST_ADD_ACK_PREFIXES = ['_~F', '_~*', 'q4'];
-export const BLACKLIST_REMOVE_ACK_PREFIXES = ['_~F', '_~*', 'q4'];
-export const BLACKLIST_CLEAR_ACK_PREFIXES = ['_~F', '_~*', 'q4'];
+export const BLACKLIST_ADD_ACK_PREFIXES = ['_~F', '_~*', 'q4', '_~m1'];
+export const BLACKLIST_REMOVE_ACK_PREFIXES = ['_~F', '_~*', 'q4', '_~m1'];
+export const BLACKLIST_CLEAR_ACK_PREFIXES = ['_~F', '_~*', 'q4', '_~m1'];
 
 /**
  * 解析房间发言/点播限制事件
@@ -114,9 +115,33 @@ export const parseMuteList = (message: string): MuteListEntry[] | undefined =>
  * 解析禁言事件
  * 新增: q3expireAt>intro>roomId>type
  * 解除: q#roomId>type
+ * 其他用户被禁言: _~$username>expireAt>intro>type
+ * 其他用户解除禁言: _~^username>type
  */
 export const parseMuteEvent = (message: string): MuteEvent | undefined =>
 {
+  if (message.startsWith('_~$'))
+  {
+    const tmp = message.slice(3).split('>');
+    return {
+      type: 'added',
+      username: tmp[0] || undefined,
+      expireAt: Number(tmp[1]) || undefined,
+      intro: tmp[2] || undefined,
+      muteType: Number(tmp[3]) || undefined,
+    };
+  }
+
+  if (message.startsWith('_~^'))
+  {
+    const tmp = message.slice(3).split('>');
+    return {
+      type: 'removed',
+      username: tmp[0] || undefined,
+      muteType: Number(tmp[1]) || undefined,
+    };
+  }
+
   if (message.startsWith('q3'))
   {
     const tmp = message.slice(2).split('>');
