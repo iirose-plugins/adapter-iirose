@@ -21,6 +21,49 @@ export const getAdapterDataDir = (bot: IIROSE_Bot): string =>
 export const getAdapterDataPath = (bot: IIROSE_Bot, relativePath: string): string =>
   path.join(getAdapterDataDir(bot), relativePath);
 
+export const DEFAULT_DURATION_MS = 30 * 60 * 1000;
+
+function formatDurationMs(durationMs: number): string
+{
+  const seconds = Math.round(durationMs / 1000);
+
+  if (seconds % 86400 === 0)
+  {
+    return `${seconds / 86400}d`;
+  }
+  if (seconds % 3600 === 0)
+  {
+    return `${seconds / 3600}h`;
+  }
+  if (seconds % 60 === 0)
+  {
+    return `${seconds / 60}m`;
+  }
+  return `${seconds}s`;
+}
+
+/** 将毫秒或带单位字符串统一为 IIROSE 支持的时间格式 */
+export const formatDuration = (duration: string | number, defaultMs: number = DEFAULT_DURATION_MS): string =>
+{
+  if (typeof duration === 'number')
+  {
+    return formatDurationMs(duration);
+  }
+
+  const trimmed = duration.trim();
+  if (!trimmed)
+  {
+    return formatDurationMs(defaultMs);
+  }
+  if (/^\d+(?:\.\d+)?[dhms]$/i.test(trimmed) || trimmed === '&')
+  {
+    return trimmed.toLowerCase();
+  }
+
+  const numeric = Number(trimmed);
+  return Number.isFinite(numeric) ? formatDurationMs(numeric) : trimmed;
+};
+
 export const Unknown_User_Name: string = "Unknown User";
 export const Unknown_Guild_Name: string = "Unknown Guild";
 export const Unknown_Channel_Name: string = "Unknown Channel";

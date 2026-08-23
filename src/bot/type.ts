@@ -21,7 +21,7 @@ export interface setMaxUser
 export interface whiteList
 {
   username: string;
-  time: string;
+  time: string | number;
   intro?: string;
 }
 

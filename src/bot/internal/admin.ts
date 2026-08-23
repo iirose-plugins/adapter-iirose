@@ -1,6 +1,7 @@
 import type { Internal } from './base';
 import type { kickData, setMaxUser, whiteList } from '../type';
 import { IIROSE_WSsend, sendAndWaitForResponsePrefixes } from '../../utils/ws';
+import { formatDuration } from '../../utils/utils';
 import kickFunction from '../../encoder/admin/manage/kick';
 import { maxUserQuery, maxUserSet, maxUserReset } from '../../encoder/admin/manage/setMaxUser';
 import { maxGuestQuery, maxGuestSet, maxGuestReset } from '../../encoder/admin/manage/setMaxGuest';
@@ -66,7 +67,8 @@ export const adminMethods = {
 
   whiteList(this: Internal, whiteList: whiteList)
   {
-    (whiteList && whiteList.hasOwnProperty('intro')) ? IIROSE_WSsend(this.bot, whiteListFunction(whiteList.username, whiteList.time, whiteList.intro)) : IIROSE_WSsend(this.bot, whiteListFunction(whiteList.username, whiteList.time));
+    const time = formatDuration(whiteList.time);
+    (whiteList && whiteList.hasOwnProperty('intro')) ? IIROSE_WSsend(this.bot, whiteListFunction(whiteList.username, time, whiteList.intro)) : IIROSE_WSsend(this.bot, whiteListFunction(whiteList.username, time));
   },
 
   async getMediaWhitelist(this: Internal): Promise<MediaWhitelistEntry[] | null>
@@ -76,9 +78,10 @@ export const adminMethods = {
     return parseMediaWhitelistList(response) ?? [];
   },
 
-  async addMediaWhitelist(this: Internal, username: string, duration: string, intro: string): Promise<boolean>
+  async addMediaWhitelist(this: Internal, username: string, duration: string | number, intro: string): Promise<boolean>
   {
-    const response = await sendAndWaitForResponsePrefixes(this.bot, mediaWhitelistAdd(username, duration, intro), MEDIA_WHITELIST_ADD_ACK_PREFIXES);
+    const time = formatDuration(duration);
+    const response = await sendAndWaitForResponsePrefixes(this.bot, mediaWhitelistAdd(username, time, intro), MEDIA_WHITELIST_ADD_ACK_PREFIXES);
     return response !== null;
   },
 
@@ -119,9 +122,10 @@ export const adminMethods = {
     return parseMuteList(response) ?? [];
   },
 
-  async muteUser(this: Internal, type: 'chat' | 'music' | 'all', username: string, duration: string, intro: string): Promise<boolean>
+  async muteUser(this: Internal, type: 'chat' | 'music' | 'all', username: string, duration: string | number, intro: string): Promise<boolean>
   {
-    const response = await sendAndWaitForResponsePrefixes(this.bot, muteFunction(type, username, duration, intro), MUTE_ADD_ACK_PREFIXES);
+    const time = formatDuration(duration);
+    const response = await sendAndWaitForResponsePrefixes(this.bot, muteFunction(type, username, time, intro), MUTE_ADD_ACK_PREFIXES);
     return response !== null;
   },
 
@@ -144,9 +148,10 @@ export const adminMethods = {
     return parseBlacklistList(response) ?? [];
   },
 
-  async addBlacklist(this: Internal, username: string, duration: string, intro: string): Promise<boolean>
+  async addBlacklist(this: Internal, username: string, duration: string | number, intro: string): Promise<boolean>
   {
-    const response = await sendAndWaitForResponsePrefixes(this.bot, blackListFunction(username, duration, intro), BLACKLIST_ADD_ACK_PREFIXES);
+    const time = formatDuration(duration);
+    const response = await sendAndWaitForResponsePrefixes(this.bot, blackListFunction(username, time, intro), BLACKLIST_ADD_ACK_PREFIXES);
     return response !== null;
   },
 

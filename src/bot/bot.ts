@@ -1,6 +1,6 @@
 import { Context, Bot, Fragment, Universal, Logger, Session } from 'koishi';
 
-import { readJsonData, findRoomInGuild, flattenRooms, findUserNameById, Unknown_User_Name, Unknown_Guild_Name, Unknown_Channel_Name } from '../utils/utils';
+import { readJsonData, findRoomInGuild, flattenRooms, findUserNameById, Unknown_User_Name, Unknown_Guild_Name, Unknown_Channel_Name, formatDuration } from '../utils/utils';
 import { IIROSE_BotMessageEncoder } from './sendMessage';
 import { IIROSE_WSsend, WsClient } from '../utils/ws';
 import { Internal, InternalType } from './internal';
@@ -558,7 +558,7 @@ export class IIROSE_Bot extends Bot<Context>
     }
   }
 
-  async muteGuildMember(guildId: string, userId: string, duration: number, reason?: string): Promise<void>
+  async muteGuildMember(guildId: string, userId: string, duration: number = 30 * 60 * 1000, reason?: string): Promise<void>
   {
     // 时长为 0 表示解除禁言
     if (duration <= 0)
@@ -581,7 +581,7 @@ export class IIROSE_Bot extends Bot<Context>
         time = '&';
       } else
       {
-        time = String(duration / 1000);
+        time = formatDuration(duration);
       }
 
       if (reason == undefined)
