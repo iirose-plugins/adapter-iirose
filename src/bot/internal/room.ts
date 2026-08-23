@@ -13,8 +13,14 @@ export const roomMethods = {
     await this.moveRoom(moveData.roomId, moveData.roomPassword);
   },
 
-  async moveRoom(this: Internal, roomId: string, roomPassword?: string)
+  async moveRoom(this: Internal, roomIdOrMoveData: string | move, roomPassword?: string)
   {
+    const moveData = typeof roomIdOrMoveData === 'string'
+      ? { roomId: roomIdOrMoveData, roomPassword }
+      : roomIdOrMoveData;
+    const roomId = moveData.roomId;
+    const password = moveData.roomPassword;
+
     if (!roomId)
     {
       return this.bot.loggerError('移动房间失败，未提供目标房间 ID');
@@ -30,10 +36,10 @@ export const roomMethods = {
 
     this.bot.config.oldRoomId = previousRoomId;
     this.bot.config.roomId = roomId;
-    this.bot.config.roomPassword = roomPassword;
+    this.bot.config.roomPassword = password;
 
     const response = await this.bot.sendAndWaitForResponse(
-      moveRoomFunction(roomId, roomPassword),
+      moveRoomFunction(roomId, password),
       'm',
       true,
     );
