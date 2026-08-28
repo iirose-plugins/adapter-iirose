@@ -222,6 +222,14 @@ export class IIROSE_Bot extends Bot<Context>
     return this.sendMessage(`private:${userId}`, content);
   }
 
+  /**
+   * 复用 Satori 基类自带的上传实现（内部临时 URL），保持 upload.create 可用。
+   */
+  async createUpload(...uploads: Universal.Upload[]): Promise<string[]>
+  {
+    return super.createUpload(...uploads);
+  }
+
   online()
   {
     super.online();
@@ -408,13 +416,13 @@ export class IIROSE_Bot extends Bot<Context>
 
   async getFriendList(next?: string): Promise<Universal.List<Universal.User>>
   {
-    // 没有好友的概念
-    return null;
+    // IIROSE 没有好友关系，返回空列表以保持 Satori 列表语义
+    return { data: [] };
   }
 
   async handleFriendRequest(messageId: string, approve: boolean, comment?: string): Promise<void>
   {
-    // 所有用户都可以直接私聊
+    // IIROSE 没有好友申请流程，所有用户都可以直接私聊，因此无需处理
   }
 
   async getChannel(channelId: string): Promise<Universal.Channel>
@@ -461,6 +469,17 @@ export class IIROSE_Bot extends Bot<Context>
     }));
 
     return { data: channels };
+  }
+
+  async createDirectChannel(userId: string): Promise<Universal.Channel>
+  {
+    // IIROSE 的私聊频道按 private:<uid> 约定标识，直接复用 getChannel 的频道格式
+    const user = await this.getUser(userId);
+    return {
+      id: `private:${userId}`,
+      name: user.name,
+      type: Universal.Channel.Type.DIRECT,
+    };
   }
 
   async getMessage(channelId: string, messageId: string): Promise<Universal.Message>
