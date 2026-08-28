@@ -58,9 +58,10 @@ const parseProtocolUrl = (value: string): string =>
   {
     return `https://${value.slice(4)}`;
   }
+  // 旧数据里缺失协议头的地址统一补成 https
   if (value.startsWith('://'))
   {
-    return `http://${value.slice(3)}`;
+    return `https://${value.slice(3)}`;
   }
   return value;
 };
@@ -179,7 +180,8 @@ export const bulkDataPacket = async (message: string, bot: IIROSE_Bot): Promise<
         if (rawDescField.startsWith('s://') || rawDescField.startsWith('://'))
         {
           const firstSpaceIndex = rawDescField.indexOf(' ');
-          const protocol = rawDescField.startsWith('s://') ? 'https' : 'http';
+          // 两种写法都是缺失协议头，iirose 现在只允许 https
+          const protocol = 'https';
 
           if (firstSpaceIndex !== -1)
           {

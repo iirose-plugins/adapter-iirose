@@ -120,7 +120,8 @@ export const parseAvatar = (avatar: string): string =>
   {
     return avatar;
   }
-  return `http://s.iirose.com/images/icon/${avatar}.jpg`;
+  // iirose 头像资源已强制 https
+  return `https://s.iirose.com/images/icon/${avatar}.jpg`;
 };
 
 export const startEventsServer = (bot: IIROSE_Bot) =>

@@ -179,7 +179,8 @@ const normalizeImage = (value: string): string =>
   const trimmed = value.trim();
   if (!trimmed) return '';
   if (trimmed.startsWith('http')) return trimmed;
-  if (trimmed.startsWith('://')) return trimmed.replace(/^:\/\//, 'http://');
+  // 旧数据缺失协议头时统一补成 https
+  if (trimmed.startsWith('://')) return trimmed.replace(/^:\/\//, 'https://');
   if (trimmed.startsWith('cartoon/')) return parseAvatar(trimmed);
   return trimmed;
 };
