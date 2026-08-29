@@ -13,6 +13,21 @@ import { Stock } from '../decoder/messages/system/consume/Stock';
 import { BankCallback } from '../decoder/messages/system/consume/BankCallback';
 import { Config, normalizeConfig } from '../config';
 
+interface CachedUser
+{
+  uid: string;
+  username: string;
+  avatar: string;
+}
+
+interface CachedGuild
+{
+  id: string;
+  name?: string;
+  avatar?: string;
+  background?: string;
+}
+
 export class IIROSE_Bot extends Bot<Context>
 {
   static MessageEncoder = IIROSE_BotMessageEncoder;
@@ -26,6 +41,7 @@ export class IIROSE_Bot extends Bot<Context>
   }[] = [];
 
   public responseListeners = new Map<string, { listener: (data: string) => void, stopPropagation: boolean; }>();
+  public awaitingUserListRefresh: boolean = false;
 
   static inject = ['assets'];
 
@@ -36,6 +52,9 @@ export class IIROSE_Bot extends Bot<Context>
   private isStarted: boolean = false;
   private disposed: boolean = false;
   private userInfoTimeout: (() => void) | null = null;
+  private userListRefreshPromise: Promise<void> | null = null;
+  private resolveUserListRefresh: (() => void) | null = null;
+  private userListRefreshTimer: (() => void) | null = null;
   private lastStockData: Stock | null = null;
   private lastBankData: BankCallback | null = null;
   public logger: Logger;
@@ -56,6 +75,10 @@ export class IIROSE_Bot extends Bot<Context>
     this.isStarted = false;
     this.disposed = false;
     this.userInfoTimeout = null;
+    this.userListRefreshPromise = null;
+    this.resolveUserListRefresh = null;
+    this.userListRefreshTimer = null;
+    this.awaitingUserListRefresh = false;
 
     this.wsClient = new WsClient(ctx, this);
 
@@ -101,9 +124,57 @@ export class IIROSE_Bot extends Bot<Context>
     }
   }
 
+  /**
+   * 请求一次完整在线玩家/频道报文，并在解析写盘后结束等待。
+   */
+  public refreshUserListCache(): Promise<void>
+  {
+    if (this.userListRefreshPromise) return this.userListRefreshPromise;
+    if (this.disposed || !this.socket) return Promise.resolve();
+
+    this.userListRefreshPromise = new Promise<void>((resolve) =>
+    {
+      this.resolveUserListRefresh = resolve;
+      this.awaitingUserListRefresh = true;
+      // 超时兜底，避免服务器没有下发完整包时一直挂起
+      this.userListRefreshTimer = this.ctx.setTimeout(() =>
+      {
+        this.userListRefreshTimer = null;
+        this.finishUserListRefresh();
+      }, this.config.refreshTimeout);
+      this.internal.requestUserList();
+    }).finally(() =>
+    {
+      this.userListRefreshPromise = null;
+    });
+
+    return this.userListRefreshPromise;
+  }
+
+  /** 完整报文解析并写盘后调用，提前结束刷新等待 */
+  public onUserListUpdated(): void
+  {
+    this.finishUserListRefresh();
+  }
+
+  private finishUserListRefresh(): void
+  {
+    this.awaitingUserListRefresh = false;
+    const timer = this.userListRefreshTimer;
+    this.userListRefreshTimer = null;
+    timer?.();
+    const resolve = this.resolveUserListRefresh;
+    this.resolveUserListRefresh = null;
+    resolve?.();
+  }
+
   setDisposing(disposing: boolean)
   {
     this.disposed = disposing;
+    if (disposing)
+    {
+      this.finishUserListRefresh();
+    }
     // 将停用状态传递给 WebSocket 客户端
     if (this.wsClient && this.wsClient.setDisposing)
     {
@@ -349,19 +420,20 @@ export class IIROSE_Bot extends Bot<Context>
 
   async getUser(userId: string): Promise<Universal.User>
   {
-    const userlist = await readJsonData(this, 'wsdata/userlist.json');
-    if (!userlist)
+    let user = await this.findCachedUser(userId);
+    if (!user || !user.username)
     {
-      return { id: userId, name: Unknown_User_Name, avatar: DEFAULT_AVATAR };
+      this.logInfo(`[getUser] 缓存中未找到用户，请求完整报文刷新: ${userId}`);
+      await this.refreshUserListCache();
+      user = await this.findCachedUser(userId);
     }
-    const user = userlist.find(u => u.uid === userId);
     if (!user)
     {
       return { id: userId, name: Unknown_User_Name, avatar: DEFAULT_AVATAR };
     }
     return {
       id: user.uid,
-      name: user.username,
+      name: user.username || Unknown_User_Name,
       avatar: parseAvatar(user.avatar),
     };
   }
@@ -394,18 +466,40 @@ export class IIROSE_Bot extends Bot<Context>
 
   async getGuild(guildId: string): Promise<Universal.Guild>
   {
-    const roomlist = await readJsonData(this, 'wsdata/roomlist.json');
-    if (!roomlist) return { id: guildId, name: Unknown_Guild_Name, avatar: DEFAULT_AVATAR };
-
-    const guild = findRoomInGuild(roomlist, guildId);
-    if (!guild) return { id: guildId, name: Unknown_Guild_Name, avatar: DEFAULT_AVATAR };
+    let guild = await this.findCachedGuild(guildId);
+    if (!guild || !guild.name)
+    {
+      this.logInfo(`[getGuild] 缓存中未找到群组，请求完整报文刷新: ${guildId}`);
+      await this.refreshUserListCache();
+      guild = await this.findCachedGuild(guildId);
+    }
+    if (!guild)
+    {
+      return { id: guildId, name: Unknown_Guild_Name, avatar: DEFAULT_AVATAR };
+    }
 
     return {
       id: guild.id,
-      name: guild.name,
+      name: guild.name || Unknown_Guild_Name,
       // IIROSE 房间用背景图作为 guild 头像，缺失时回退到站点默认图标
       avatar: normalizeRoomImageUrl(guild.avatar || guild.background) || DEFAULT_AVATAR,
     };
+  }
+
+  private async findCachedUser(userId: string): Promise<CachedUser | null>
+  {
+    const userlist = await readJsonData(this, 'wsdata/userlist.json');
+    if (!userlist) return null;
+    const user = userlist.find((u: CachedUser) => u?.uid === userId);
+    return user ?? null;
+  }
+
+  private async findCachedGuild(guildId: string): Promise<CachedGuild | null>
+  {
+    const roomlist = await readJsonData(this, 'wsdata/roomlist.json');
+    if (!roomlist) return null;
+    const guild = findRoomInGuild(roomlist, guildId);
+    return guild ?? null;
   }
 
   async getGuildList(next?: string): Promise<Universal.List<Universal.Guild>>

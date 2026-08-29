@@ -99,6 +99,47 @@ const parseRoomState = (raw: string): RoomState | undefined =>
   };
 };
 
+const ONLINE_USER_LIST_START = /^(?:https?:\/\/\S*\/|u2scenery\/|cartoon\/|anime\/|scenery\/|couple\/|female\/|male\/|s:\/\/)/i;
+
+/** 判断是否为 r2 直接下发的在线用户列表（无 %* 大包前缀） */
+const isOnlineUserListPacket = (message: string): boolean =>
+  message.length > 500 && message.includes('<') && ONLINE_USER_LIST_START.test(message);
+
+/** 解析 r2 直接下发的在线用户列表 */
+const parseOnlineUserList = async (message: string, bot: IIROSE_Bot): Promise<BulkDataPacketResult | undefined> =>
+{
+  const raw = message.trim().replace(/^["']/, '').replace(/["']+$/, '');
+  const userList: UserList[] = [];
+
+  for (const segment of raw.split('<'))
+  {
+    if (!segment.trim()) continue;
+    const fields = segment.split('>');
+    if (fields.length < 9 || !fields[0].includes('/')) continue;
+
+    userList.push({
+      avatar: parseAvatar(fields[0]),
+      username: h.unescape(fields[2]),
+      color: fields[3],
+      room: fields[4],
+      uid: fields[8],
+    });
+  }
+
+  if (userList.length > 0)
+  {
+    await writeWJ(bot, 'wsdata/userlist.json', userList);
+    const self = userList.find(user => user.uid === bot.selfId || user.username === bot.config.usename);
+    if (self && bot.user)
+    {
+      bot.user.name = self.username;
+      bot.user.avatar = self.avatar;
+    }
+  }
+
+  return { userList, roomList: {} };
+};
+
 /**
  * 解析包含大量数据的包 (如用户列表、房间列表)
  * @param message 消息
@@ -315,6 +356,9 @@ export const bulkDataPacket = async (message: string, bot: IIROSE_Bot): Promise<
       await Promise.all(writeTasks);
     }
 
+    // 完整报文已写盘，唤醒正在等待刷新的 getGuild/getUser
+    bot.onUserListUpdated();
+
     // 触发一次股价查询
     bot.sendAndWaitForResponse(stockGet(), '>', false);
 
@@ -340,5 +384,13 @@ export const bulkDataPacket = async (message: string, bot: IIROSE_Bot): Promise<
       roomList,
       roomState,
     };
+  }
+
+  // r2 可能直接下发在线用户列表，不经过 %* 大包前缀
+  if (bot.awaitingUserListRefresh && isOnlineUserListPacket(message))
+  {
+    const result = await parseOnlineUserList(message, bot);
+    bot.onUserListUpdated();
+    return result;
   }
 };
