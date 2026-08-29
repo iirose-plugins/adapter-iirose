@@ -1,6 +1,6 @@
 import { Context, Bot, Fragment, Universal, Logger, Session } from 'koishi';
 
-import { readJsonData, findRoomInGuild, flattenRooms, findUserNameById, Unknown_User_Name, Unknown_Guild_Name, Unknown_Channel_Name, formatDuration } from '../utils/utils';
+import { normalizeRoomImageUrl, readJsonData, findRoomInGuild, flattenRooms, findUserNameById, parseAvatar, Unknown_User_Name, Unknown_Guild_Name, Unknown_Channel_Name, formatDuration, DEFAULT_AVATAR } from '../utils/utils';
 import { IIROSE_BotMessageEncoder } from './sendMessage';
 import { IIROSE_WSsend, WsClient } from '../utils/ws';
 import { Internal, InternalType } from './internal';
@@ -352,17 +352,17 @@ export class IIROSE_Bot extends Bot<Context>
     const userlist = await readJsonData(this, 'wsdata/userlist.json');
     if (!userlist)
     {
-      return { id: userId, name: Unknown_User_Name };
+      return { id: userId, name: Unknown_User_Name, avatar: DEFAULT_AVATAR };
     }
     const user = userlist.find(u => u.uid === userId);
     if (!user)
     {
-      return { id: userId, name: Unknown_User_Name };
+      return { id: userId, name: Unknown_User_Name, avatar: DEFAULT_AVATAR };
     }
     return {
       id: user.uid,
       name: user.username,
-      avatar: user.avatar,
+      avatar: parseAvatar(user.avatar),
     };
   }
 
@@ -386,7 +386,7 @@ export class IIROSE_Bot extends Bot<Context>
       .map(u => ({
         id: u.uid,
         name: u.username,
-        avatar: u.avatar,
+        avatar: parseAvatar(u.avatar),
       }));
 
     return { data: members };
@@ -395,14 +395,16 @@ export class IIROSE_Bot extends Bot<Context>
   async getGuild(guildId: string): Promise<Universal.Guild>
   {
     const roomlist = await readJsonData(this, 'wsdata/roomlist.json');
-    if (!roomlist) return { id: guildId, name: Unknown_Guild_Name };
+    if (!roomlist) return { id: guildId, name: Unknown_Guild_Name, avatar: DEFAULT_AVATAR };
 
     const guild = findRoomInGuild(roomlist, guildId);
-    if (!guild) return { id: guildId, name: Unknown_Guild_Name };
+    if (!guild) return { id: guildId, name: Unknown_Guild_Name, avatar: DEFAULT_AVATAR };
 
     return {
       id: guild.id,
       name: guild.name,
+      // IIROSE 房间用背景图作为 guild 头像，缺失时回退到站点默认图标
+      avatar: normalizeRoomImageUrl(guild.avatar || guild.background) || DEFAULT_AVATAR,
     };
   }
 

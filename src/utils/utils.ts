@@ -67,6 +67,20 @@ export const formatDuration = (duration: string | number, defaultMs: number = DE
 export const Unknown_User_Name: string = "Unknown User";
 export const Unknown_Guild_Name: string = "Unknown Guild";
 export const Unknown_Channel_Name: string = "Unknown Channel";
+export const DEFAULT_AVATAR: string = 'https://iirose.com/favicon.ico';
+
+/** 统一房间背景/头像链接为 https，IIROSE 已不允许通过 http 访问 */
+export const normalizeRoomImageUrl = (value?: string): string =>
+{
+  if (!value) return '';
+  const trimmed = value.trim();
+  if (trimmed.startsWith('http://')) return `https://${trimmed.slice(7)}`;
+  if (trimmed.startsWith('https://')) return trimmed;
+  if (trimmed.startsWith('//')) return `https:${trimmed}`;
+  if (trimmed.startsWith('s://')) return `https://${trimmed.slice(4)}`;
+  if (trimmed.startsWith('://')) return `https://${trimmed.slice(3)}`;
+  return trimmed;
+};
 
 /**
  * 颜色转换函数：将rgba格式转换为十六进制格式
@@ -480,7 +494,14 @@ export async function transformUrl(bot: IIROSE_Bot, elementString: string): Prom
     const urlMatch = transformedContent.match(/src="([^"]+)"/);
     if (urlMatch && urlMatch[1])
     {
-      return unescapeHtml(urlMatch[1]);
+      const url = unescapeHtml(urlMatch[1]);
+      // 只有 http(s) 地址才能被 IIROSE 服务端访问，file:// 等本地地址不能直接发送
+      if (!/^https?:\/\//i.test(url))
+      {
+        bot.loggerWarn(`Asset transformation produced an inaccessible URL: ${url}`);
+        return null;
+      }
+      return url;
     } else
     {
       bot.loggerWarn(`Could not extract URL from transformed content: ${transformedContent}`);

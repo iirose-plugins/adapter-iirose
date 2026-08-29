@@ -1,6 +1,6 @@
 import { h } from 'koishi';
 import { IIROSE_Bot } from '../../../../bot/bot';
-import { parseAvatar, writeWJ } from '../../../../utils/utils';
+import { DEFAULT_AVATAR, normalizeRoomImageUrl, parseAvatar, writeWJ } from '../../../../utils/utils';
 import { stockGet } from '../../../../encoder/system/consume/stock';
 import { bankGet } from '../../../../encoder/system/consume/bank';
 
@@ -20,6 +20,7 @@ export interface RoomInfo
   online: number;
   description: string;
   users: string[];
+  avatar?: string;
   background?: string;
   rooms?: string[];
 }
@@ -176,23 +177,13 @@ export const bulkDataPacket = async (message: string, bot: IIROSE_Bot): Promise<
         let description = '';
         let background = '';
 
-        // 解析背景和简介
-        if (rawDescField.startsWith('s://') || rawDescField.startsWith('://'))
+        // 解析背景和简介，IIROSE 房间头像位于 desc 字段开头的图片 URL
+        const imageMatch = rawDescField.match(/^(?:(?:https?|s):\/\/|:\/\/|\/\/)\S+/);
+        if (imageMatch)
         {
-          const firstSpaceIndex = rawDescField.indexOf(' ');
-          // 两种写法都是缺失协议头，iirose 现在只允许 https
-          const protocol = 'https';
-
-          if (firstSpaceIndex !== -1)
-          {
-            const urlPart = rawDescField.substring(rawDescField.startsWith('s://') ? 4 : 3, firstSpaceIndex);
-            background = `${protocol}://${urlPart}`;
-            description = rawDescField.substring(firstSpaceIndex + 1).split('&&')[0].trim();
-          } else
-          {
-            const urlPart = rawDescField.substring(rawDescField.startsWith('s://') ? 4 : 3);
-            background = `${protocol}://${urlPart}`;
-          }
+          const imageUrl = imageMatch[0];
+          background = normalizeRoomImageUrl(imageUrl);
+          description = rawDescField.slice(imageUrl.length).trim().split('&&')[0].trim();
         } else
         {
           description = rawDescField.split('&&')[0].trim();
@@ -235,6 +226,7 @@ export const bulkDataPacket = async (message: string, bot: IIROSE_Bot): Promise<
           name: roomName,
           description: description,
           background: background,
+          avatar: background || DEFAULT_AVATAR,
           users: [], // 先置空，后续统一填充
           online: 0, // 先置空，后续统一计算
         };
