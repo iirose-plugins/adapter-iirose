@@ -187,6 +187,11 @@ export class IIROSE_BotMessageEncoder extends MessageEncoder<Context, IIROSE_Bot
       case 'img': {
         let url = attrs.src;
 
+        // 源 URL 已带 IIROSE 的 `#e` 表情标记时，避免下方重复追加
+        if (url.endsWith('#e')) {
+          url = url.slice(0, -2);
+        }
+
         // 如果是 https 协议，直接使用
         if (url.startsWith('http'))
         {

@@ -12,7 +12,8 @@ export async function clearMsg(msg: string, bot: IIROSE_Bot)
   msg = msg.replace(/\\(https*:\/\/[\s\S]+)/g, '$1');
 
   // 优先处理历史遗留的图片格式 `[url#e]`，将其转换为裸链接
-  msg = msg.replace(/\[((https*:\/\/[\s\S]+?\.(png|jpg|jpeg|gif))(#e)*)\]/g, '$1');
+  // 这里需要保留 `.gif@740w_700h.avif` 这类图床处理后缀，避免后续匹配被截断
+  msg = msg.replace(/\[((?:https?:\/\/[^\s\]]+?\.(?:png|jpg|jpeg|gif)(?:[@!][A-Za-z0-9._%+-]+|\?[A-Za-z0-9._%&+=/:~-]*)?(?:#[A-Za-z0-9._%&+=/:~-]*)?))\]/g, '$1');
 
   async function replaceAsync(str: string, regex: RegExp, asyncFn: (...args: any[]) => Promise<string>)
   {
@@ -27,11 +28,12 @@ export async function clearMsg(msg: string, bot: IIROSE_Bot)
   }
 
   // 处理图片 (同步)
-  const imageUrlRegex = /((?:https?:\/\/[\s\S]+?)\.(?:png|jpg|jpeg|gif)(?:#e)?)/g;
+  // 图片扩展名后允许保留图床处理参数（例如 `@740w_700h.avif`）和 URL 查询/片段
+  const imageUrlRegex = /((?:https?:\/\/[^\s<>"']+?\.(?:png|jpg|jpeg|gif)(?:[@!][A-Za-z0-9._%+-]+|\?[A-Za-z0-9._%&+=/:~-]*)?(?:#[A-Za-z0-9._%&+=/:~-]*)?))/g;
   msg = msg.replace(imageUrlRegex, (match) =>
   {
-    const cleanUrl = match.replace(/#e$/, '');
-    return h.image(cleanUrl).toString();
+    // `#e` 是 IIROSE 的图片表情标记，按 issue 要求保留在完整图片 URL 中
+    return h.image(match).toString();
   });
 
   // 处理音频 (同步)
