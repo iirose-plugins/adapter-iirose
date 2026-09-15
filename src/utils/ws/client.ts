@@ -7,8 +7,6 @@ import { startHeartbeat } from './heartbeat';
 import { IIROSE_WSsend } from './send';
 import { startEventsServer, stopEventsServer } from '../utils';
 
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
-
 export class WsClient
 {
   private event: (() => boolean)[] = [];

@@ -6,9 +6,55 @@ import { getMd5Password, md5 } from '../password';
 import { calculateRetryDelay, waitWithCancel } from './retry';
 import { IIROSE_WSsend } from './send';
 
+// 与当前网页客户端保持一致，WebSocket 通过 Cloudflare 的 443 端口连接
+const IIROSE_WEBSOCKET_HOSTS = ['m1', 'm8', 'm9'];
+const IIROSE_WEBSOCKET_PORT = 443;
+
 function isDisposingError(error: unknown): boolean
 {
   return error instanceof Error && error.message.includes('插件正在停用');
+}
+
+/**
+ * 返回首个连接成功的节点，全部失败时返回 null
+ */
+async function getFastestServer(
+  speedTests: Promise<{ index: string, speed: number | 'error'; }>[]
+): Promise<{ index: string, speed: number; } | null>
+{
+  return new Promise((resolve) =>
+  {
+    let pending = speedTests.length;
+
+    if (pending === 0)
+    {
+      resolve(null);
+      return;
+    }
+
+    for (const speedTest of speedTests)
+    {
+      speedTest.then((result) =>
+      {
+        if (result.speed !== 'error')
+        {
+          resolve({ index: result.index, speed: result.speed });
+          return;
+        }
+
+        if (--pending === 0)
+        {
+          resolve(null);
+        }
+      }, () =>
+      {
+        if (--pending === 0)
+        {
+          resolve(null);
+        }
+      });
+    }
+  });
 }
 
 /**
@@ -109,7 +155,7 @@ export async function getLatency(
         }
       });
 
-    } catch (error)
+    } catch
     {
       safeResolve('error');
     }
@@ -125,9 +171,8 @@ export async function prepareConnection(
   disposed: () => boolean
 ): Promise<WebSocket>
 {
-  const iiroseList = ['m1', 'm2', 'm8', 'm9', 'm'];
-  let fastest = 'www';
-  let maximumSpeed = 100000;
+  let fastest = IIROSE_WEBSOCKET_HOSTS[0];
+  let maximumSpeed = Number.POSITIVE_INFINITY;
 
   let allErrors: boolean;
   let retryCount = 0;
@@ -144,45 +189,38 @@ export async function prepareConnection(
     const speedTests: Promise<{ index: string, speed: number | 'error'; }>[] = [];
 
     // 并行测试所有服务器
-    for (let webIndex of iiroseList)
+    for (const webIndex of IIROSE_WEBSOCKET_HOSTS)
     {
+      const url = `wss://${webIndex}.iirose.com:${IIROSE_WEBSOCKET_PORT}`;
       speedTests.push(
-        getLatency(ctx, bot, `wss://${webIndex}.iirose.com:8778`, disposed)
-          .then(speed => ({ index: webIndex, speed }))
+        getLatency(ctx, bot, url, disposed)
+          .then(speed =>
+          {
+            if (bot.config.debugMode)
+            {
+              bot.logInfo(`WebSocket 节点 ${webIndex}: ${speed === 'error' ? '连接失败' : `${speed}ms`}`);
+            }
+            return { index: webIndex, speed };
+          })
           .catch(() => ({ index: webIndex, speed: 'error' as const }))
       );
     }
 
     try
     {
-      const results = await Promise.race([
-        Promise.allSettled(speedTests).then(settledResults =>
-          settledResults.map(result =>
-            result.status === 'fulfilled' ? result.value : { index: '', speed: 'error' as const }
-          ).filter(r => r.index !== '')
-        ),
-        new Promise<{ index: string, speed: 'error'; }[]>(resolve =>
-          ctx.setTimeout(() => resolve(iiroseList.map(index => ({ index, speed: 'error' as const }))), 5000)
-        )
-      ]);
+      // 首个成功打开的节点即为当前最快节点
+      const fastestResult = await getFastestServer(speedTests);
 
       if (disposed())
       {
         throw new Error('插件正在停用');
       }
 
-      // 找到最快的可用服务器
-      for (const result of results)
+      if (fastestResult)
       {
-        if (result.speed !== 'error')
-        {
-          allErrors = false;
-          if (maximumSpeed > result.speed)
-          {
-            fastest = result.index;
-            maximumSpeed = result.speed;
-          }
-        }
+        allErrors = false;
+        fastest = fastestResult.index;
+        maximumSpeed = fastestResult.speed;
       }
 
       if (!allErrors)
@@ -227,25 +265,11 @@ export async function prepareConnection(
 
   } while (allErrors && !disposed());
 
-  if (!fastest)
-  {
-    fastest = 'www';
-  }
-
-  const targetUrl = `wss://${fastest}.iirose.com:8778`;
+  const targetUrl = `wss://${fastest}.iirose.com:${IIROSE_WEBSOCKET_PORT}`;
   bot.loggerInfo(`找到可用服务器: ${targetUrl}, 延迟: ${maximumSpeed}ms`);
 
   const socket = ctx.http.ws(targetUrl);
   socket.binaryType = 'arraybuffer';
-
-  const dispose = ctx.on('dispose', () =>
-  {
-    if (socket && socket.readyState === 1)
-    {
-      socket.close();
-    }
-    dispose();
-  });
 
   return socket;
 }
