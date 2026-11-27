@@ -12,9 +12,15 @@ function toArrayBuffer(data: Uint8Array): ArrayBuffer
   return arrayBuffer;
 }
 
-export async function IIROSE_WSsend(bot: IIROSE_Bot, data: string): Promise<void>
+/**
+ * 发送一帧到 WebSocket。
+ * @returns 是否真的发出去了；socket 不存在 / 连接中 / 已关闭时返回 false（不抛错，但会写日志）
+ */
+export async function IIROSE_WSsend(bot: IIROSE_Bot, data: string): Promise<boolean>
 {
   const callId = Math.random().toString(36).substring(2, 8);
+
+  let sent = false;
 
   wsSendLock = wsSendLock.then(async () =>
   {
@@ -22,13 +28,19 @@ export async function IIROSE_WSsend(bot: IIROSE_Bot, data: string): Promise<void
     {
       if (!bot.socket)
       {
-        bot.loggerError('布豪！ !bot.socket !!! 请联系开发者');
+        bot.loggerWarn('布豪！ !bot.socket !!! 请联系开发者');
         return;
       }
 
       if (bot.socket.readyState === 0)
       {
         bot.logInfo('WebSocket 连接中，跳过本次发送');
+        return;
+      }
+
+      if (bot.socket.readyState > 1)
+      {
+        bot.loggerWarn(`WebSocket 已关闭(readyState=${bot.socket.readyState})，跳过本次发送`);
         return;
       }
 
@@ -52,6 +64,8 @@ export async function IIROSE_WSsend(bot: IIROSE_Bot, data: string): Promise<void
       {
         bot.socket.send(toArrayBuffer(uintArray));
       }
+
+      sent = true;
     } catch (error)
     {
       bot.loggerError(`[WS发送-${callId}] 发送失败:`, error);
@@ -59,4 +73,5 @@ export async function IIROSE_WSsend(bot: IIROSE_Bot, data: string): Promise<void
   });
 
   await wsSendLock;
+  return sent;
 }

@@ -1,4 +1,5 @@
 import type { Internal } from './base';
+import { sleep } from 'koishi';
 import { IIROSE_WSsend } from '../../utils/ws';
 import { stockGet, stockBuy, stockSell } from '../../encoder/system/consume/stock';
 import { bankGet, bankDeposit, bankWithdraw } from '../../encoder/system/consume/bank';
@@ -21,10 +22,27 @@ export const economyMethods = {
 
   async stockGet(this: Internal): Promise<Stock | null>
   {
-    const response = await this.bot.sendAndWaitForResponse(stockGet(), '>', true);
-    if (response)
+    // 登录握手期间 socket 可能还不存在或处于 CONNECTING：
+    // sendAndWaitForResponse 会立即失败（不再白等一个超时），所以这里短等后重试一次。
+    for (let attempt = 0; attempt < 2; attempt++)
     {
-      return parseStock(response, this.bot);
+      const response = await this.bot.sendAndWaitForResponse(stockGet(), '>', false);
+      if (response)
+      {
+        const parsed = parseStock(response, this.bot);
+        if (!parsed) this.bot.loggerWarn('[stockGet] 股价回包无法解析:', JSON.stringify(response));
+        return parsed ?? null;
+      }
+
+      const skipReason = this.bot.lastResponseSkipReason;
+      if (attempt === 0 && skipReason)
+      {
+        await sleep(500);
+        continue;
+      }
+
+      this.bot.loggerWarn(`[stockGet] 未取得股价回包（${skipReason ?? 'timeout'}）`);
+      return null;
     }
     return null;
   },
