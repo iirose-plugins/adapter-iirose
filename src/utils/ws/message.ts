@@ -46,17 +46,11 @@ export function setupMessageHandler(
       }
     }
 
-    // 检查响应监听器
-    for (const [prefix, handler] of bot.responseListeners.entries())
+    // 检查响应等待队列（同前缀可能排着多个等待者，投递给最早的一个）
+    const delivery = bot.deliverResponse(message);
+    if (delivery === true)
     {
-      if (message.startsWith(prefix))
-      {
-        handler.listener(message);
-        if (handler.stopPropagation)
-        {
-          return;
-        }
-      }
+      return;
     }
 
     // 处理消息ID

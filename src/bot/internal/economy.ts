@@ -1,11 +1,13 @@
 import type { Internal } from './base';
+import { sleep } from 'koishi';
+import { waitForResponse } from '../../utils/ws/response';
 import { IIROSE_WSsend } from '../../utils/ws';
 import { stockGet, stockBuy, stockSell } from '../../encoder/system/consume/stock';
 import { bankGet, bankDeposit, bankWithdraw } from '../../encoder/system/consume/bank';
 import getBalanceFunction from '../../encoder/user/getBalance';
 import payment, { parsePaymentCallback, PaymentCallback } from '../../encoder/user/payment';
 import { parseBalance } from '../../decoder/messages/user/consume/Balance';
-import { Stock, stock as parseStock } from '../../decoder/messages/system/consume/Stock';
+import { Stock, isStockResponse, stock as parseStock } from '../../decoder/messages/system/consume/Stock';
 import { BankCallback, bankCallback as parseBankCallback } from '../../decoder/messages/system/consume/BankCallback';
 
 export const economyMethods = {
@@ -21,10 +23,23 @@ export const economyMethods = {
 
   async stockGet(this: Internal): Promise<Stock | null>
   {
-    const response = await this.bot.sendAndWaitForResponse(stockGet(), '>', true);
-    if (response)
+    // 仅在连接暂不可用时重试一次。
+    for (let attempt = 0; attempt < 2; attempt++)
     {
-      return parseStock(response, this.bot);
+      const { data, reason } = await waitForResponse(this.bot, stockGet(), ['>'], {
+        stopPropagation: false,
+        matches: isStockResponse,
+      });
+      if (data) return parseStock(data, this.bot) ?? null;
+
+      if (attempt === 0 && (reason === 'no-socket' || reason === 'connecting' || reason === 'closed'))
+      {
+        await sleep(500);
+        continue;
+      }
+
+      this.bot.loggerWarn(`[stockGet] 未取得股价回包（${reason}）`);
+      return null;
     }
     return null;
   },

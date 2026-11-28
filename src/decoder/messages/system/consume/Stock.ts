@@ -9,6 +9,8 @@ export interface Stock
   personalMoney: number;
 }
 
+export const isStockResponse = (message: string) => message.startsWith('>') && !message.startsWith('>$');
+
 /**
  * 解析股票信息
  * @param message 消息
@@ -17,23 +19,24 @@ export interface Stock
  */
 export const stock = (message: string, bot: IIROSE_Bot) =>
 {
-  if (message.substring(0, 1) === '>')
+  if (!isStockResponse(message)) return;
+
+  const list = message.substring(1).split('>')[0].split('"');
+  if (list.length === 5)
   {
-    const list = message.substring(1).split('>')[0].split('"');
-    if (list.length === 5)
-    {
 
-      const data: Stock = {
-        unitPrice: Number(Number(list[2]).toFixed(4)),
-        totalStock: Number(list[0]),
-        personalStock: Number(list[3]),
-        totalMoney: Number(Number(list[1]).toFixed(4)),
-        personalMoney: Number(list[4]),
-      };
+    const data: Stock = {
+      unitPrice: Number(Number(list[2]).toFixed(4)),
+      totalStock: Number(list[0]),
+      personalStock: Number(list[3]),
+      totalMoney: Number(Number(list[1]).toFixed(4)),
+      personalMoney: Number(list[4]),
+    };
 
-      bot.handleStockUpdate(data);
-      return (data);
-    }
-    return null;
+    bot.handleStockUpdate(data);
+    return (data);
   }
+
+  bot.loggerWarn('[stock] 股价回包字段数异常，已忽略:', JSON.stringify(message.slice(0, 120)));
+  return null;
 };

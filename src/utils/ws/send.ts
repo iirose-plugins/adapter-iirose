@@ -1,8 +1,9 @@
 import * as zlib from 'node:zlib';
-import { IIROSE_Bot } from '../../bot/bot';
+import type { IIROSE_Bot, ResponseSkipReason } from '../../bot/bot';
 
 // WebSocket发送锁，确保消息发送时序正确
-let wsSendLock: Promise<void> = Promise.resolve();
+type SendFailure = ResponseSkipReason | 'send-error';
+let wsSendLock: Promise<SendFailure | null> = Promise.resolve(null);
 
 function toArrayBuffer(data: Uint8Array): ArrayBuffer
 {
@@ -12,24 +13,27 @@ function toArrayBuffer(data: Uint8Array): ArrayBuffer
   return arrayBuffer;
 }
 
-export async function IIROSE_WSsend(bot: IIROSE_Bot, data: string): Promise<void>
+/**
+ * 发送一帧到 WebSocket。
+ * @returns 是否真的发出去了；socket 不存在 / 连接中 / 已关闭时返回 false（不抛错，但会写日志）
+ */
+export async function IIROSE_WSsend(bot: IIROSE_Bot, data: string): Promise<boolean>
+{
+  return (await sendFrame(bot, data)) === null;
+}
+
+export function sendFrame(bot: IIROSE_Bot, data: string): Promise<SendFailure | null>
 {
   const callId = Math.random().toString(36).substring(2, 8);
-
-  wsSendLock = wsSendLock.then(async () =>
+  wsSendLock = wsSendLock.then(() =>
   {
     try
     {
-      if (!bot.socket)
+      const reason = bot.socketSkipReason();
+      if (reason)
       {
-        bot.loggerError('布豪！ !bot.socket !!! 请联系开发者');
-        return;
-      }
-
-      if (bot.socket.readyState === 0)
-      {
-        bot.logInfo('WebSocket 连接中，跳过本次发送');
-        return;
+        bot.loggerWarn(`[WS发送-${callId}] 跳过发送（${reason}）`);
+        return reason;
       }
 
       const shortData = data.length > 50 ? data.substring(0, 50) + '...' : data;
@@ -52,11 +56,14 @@ export async function IIROSE_WSsend(bot: IIROSE_Bot, data: string): Promise<void
       {
         bot.socket.send(toArrayBuffer(uintArray));
       }
+
+      return null;
     } catch (error)
     {
       bot.loggerError(`[WS发送-${callId}] 发送失败:`, error);
+      return 'send-error' as const;
     }
   });
 
-  await wsSendLock;
+  return wsSendLock;
 }

@@ -3,6 +3,7 @@ import { Context, Bot, Fragment, Universal, Logger, Session } from 'koishi';
 import { normalizeRoomImageUrl, readJsonData, findRoomInGuild, flattenRooms, findUserNameById, parseAvatar, Unknown_User_Name, Unknown_Guild_Name, Unknown_Channel_Name, formatDuration, DEFAULT_AVATAR } from '../utils/utils';
 import { IIROSE_BotMessageEncoder } from './sendMessage';
 import { IIROSE_WSsend, WsClient } from '../utils/ws';
+import { waitForResponse } from '../utils/ws/response';
 import { Internal, InternalType } from './internal';
 import { comparePassword } from '../utils/password';
 import { SendOptions } from '@satorijs/protocol';
@@ -12,6 +13,16 @@ import mute, { unmute } from '../encoder/admin/manage/mute';
 import { Stock } from '../decoder/messages/system/consume/Stock';
 import { BankCallback } from '../decoder/messages/system/consume/BankCallback';
 import { Config, normalizeConfig } from '../config';
+
+export interface ResponseWaiter
+{
+  listener: (data: string) => void;
+  stopPropagation: boolean;
+  matches?: (message: string) => boolean;
+}
+
+/** socket 无法发送时的原因，供调用方决定是重试还是放弃 */
+export type ResponseSkipReason = 'disposed' | 'no-socket' | 'connecting' | 'closed';
 
 interface CachedUser
 {
@@ -40,7 +51,12 @@ export class IIROSE_Bot extends Bot<Context>
     timer: () => void;
   }[] = [];
 
-  public responseListeners = new Map<string, { listener: (data: string) => void, stopPropagation: boolean; }>();
+  /**
+   * 按前缀分桶的等待队列。
+   * 同一个前缀现在允许多个等待者共存，按发送顺序 FIFO 投递，
+   * 不再像早期版本那样「后注册直接覆盖前一个」导致先前的调用饿死到超时。
+   */
+  public responseListeners = new Map<string, ResponseWaiter[]>();
   public awaitingUserListRefresh: boolean = false;
 
   static inject = ['assets'];
@@ -385,37 +401,67 @@ export class IIROSE_Bot extends Bot<Context>
   }
 
   /**
-   * 发送一个WebSocket消息并等待一个具有特定前缀的响应
+   * 发送一个WebSocket消息并等待一个具有特定前缀的响应。
+   *
+   * 同名前缀的并发调用会排队而不是互相覆盖：帧优先投递给**最早**发出请求的等待者。
+   * socket 不可用时立即解析为 null（并写一条警告），不再让调用方白等满一个超时。
+   *
    * @param payload 要发送的数据
    * @param responsePrefix 期望的响应前缀
    * @param stopPropagation 是否在匹配到响应后停止消息的进一步传播，默认为 true
    * @param timeout 超时时间 (毫秒)
-   * @returns 返回一个Promise，该Promise会解析为响应字符串，或在超时时解析为null
+   * @returns 返回一个Promise，该Promise会解析为响应字符串，或在超时/无法发送时解析为null
    */
-  public sendAndWaitForResponse(payload: string, responsePrefix: string, stopPropagation: boolean = true, timeout?: number): Promise<string | null>
+  public async sendAndWaitForResponse(payload: string, responsePrefix: string, stopPropagation: boolean = true, timeout?: number): Promise<string | null>
   {
-    const effectiveTimeout = timeout ?? this.config.timeout;
+    const result = await waitForResponse(this, payload, [responsePrefix], { stopPropagation, timeout });
+    return result.data;
+  }
 
-    return new Promise((resolve) =>
+  /** socket 是否可发送；不可用时返回原因 */
+  public socketSkipReason(): ResponseSkipReason | null
+  {
+    if (this.disposed) return 'disposed';
+    if (!this.socket) return 'no-socket';
+    if (this.socket.readyState === 0) return 'connecting';
+    if (this.socket.readyState > 1) return 'closed';
+    return null;
+  }
+
+  /** 把等待者追加到对应前缀队列尾部 */
+  public addResponseWaiter(prefix: string, waiter: ResponseWaiter)
+  {
+    const bucket = this.responseListeners.get(prefix);
+    if (bucket) bucket.push(waiter);
+    else this.responseListeners.set(prefix, [waiter]);
+  }
+
+  /** 从对应前缀队列中移除指定等待者（队空时删除该前缀） */
+  public removeResponseWaiter(prefix: string, waiter: ResponseWaiter)
+  {
+    const bucket = this.responseListeners.get(prefix);
+    if (!bucket) return;
+    const index = bucket.indexOf(waiter);
+    if (index >= 0) bucket.splice(index, 1);
+    if (bucket.length === 0) this.responseListeners.delete(prefix);
+  }
+
+  /**
+   * 把一帧投递给最早的同前缀等待者。
+   * @returns null=无人认领；true=已认领且需停止传播；false=已认领但可继续传播
+   */
+  public deliverResponse(message: string): boolean | null
+  {
+    for (const [prefix, bucket] of this.responseListeners)
     {
-      const dispose = this.ctx.setTimeout(() =>
-      {
-        this.responseListeners.delete(responsePrefix);
-        resolve(null); // 超时，解析为 null
-      }, effectiveTimeout);
-
-      this.responseListeners.set(responsePrefix, {
-        listener: (data: string) =>
-        {
-          dispose(); // 取消计时器
-          this.responseListeners.delete(responsePrefix); // clean up after resolving
-          resolve(data);
-        },
-        stopPropagation: stopPropagation
-      });
-
-      IIROSE_WSsend(this, payload);
-    });
+      if (!message.startsWith(prefix)) continue;
+      const waiter = bucket.find(candidate => !candidate.matches || candidate.matches(message));
+      if (!waiter) continue;
+      this.removeResponseWaiter(prefix, waiter);
+      waiter.listener(message);
+      return waiter.stopPropagation;
+    }
+    return null;
   }
 
   async getUser(userId: string): Promise<Universal.User>
