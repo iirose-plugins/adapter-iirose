@@ -1,5 +1,5 @@
-import type { IIROSE_Bot, ResponseWaiter } from '../../bot/bot';
-import { IIROSE_WSsend } from './send';
+import type { IIROSE_Bot, ResponseSkipReason, ResponseWaiter } from '../../bot/bot';
+import { sendFrame } from './send';
 
 /**
  * 发送 WebSocket 报文并等待多个可能的前缀回执（任一回执即完成）。
@@ -17,39 +17,60 @@ export async function sendAndWaitForResponsePrefixes(
   timeout?: number,
 ): Promise<string | null>
 {
-  const effectiveTimeout = timeout ?? bot.config.timeout;
+  const result = await waitForResponse(bot, payload, prefixes, { timeout });
+  return result.data;
+}
+
+interface ResponseOptions
+{
+  stopPropagation?: boolean;
+  timeout?: number;
+  matches?: (message: string) => boolean;
+}
+
+interface ResponseResult
+{
+  data: string | null;
+  reason?: ResponseSkipReason | 'send-error' | 'timeout';
+}
+
+export function waitForResponse(
+  bot: IIROSE_Bot, payload: string, prefixes: string[], options: ResponseOptions,
+): Promise<ResponseResult>
+{
+  const reason = bot.socketSkipReason();
+  if (reason)
+  {
+    bot.loggerWarn(`[WS发送] 跳过发送（${reason}）`);
+    return Promise.resolve({ data: null, reason });
+  }
 
   return new Promise((resolve) =>
   {
     let settled = false;
 
     const waiter: ResponseWaiter = {
-      stopPropagation: true,
-      listener: (data: string) => finish(data),
+      stopPropagation: options.stopPropagation ?? true,
+      matches: options.matches,
+      listener: (data: string) => finish({ data }),
     };
 
-    const cleanup = () =>
-    {
-      prefixes.forEach(prefix => bot.removeResponseWaiter(prefix, waiter));
-    };
-
-    const finish = (data: string | null) =>
+    const finish = (result: ResponseResult) =>
     {
       if (settled) return;
       settled = true;
       dispose();
-      cleanup();
-      resolve(data);
+      prefixes.forEach(prefix => bot.removeResponseWaiter(prefix, waiter));
+      resolve(result);
     };
 
-    const dispose = bot.ctx.setTimeout(() => finish(null), effectiveTimeout);
+    const dispose = bot.ctx.setTimeout(() => finish({ data: null, reason: 'timeout' }), options.timeout ?? bot.config.timeout);
 
     prefixes.forEach(prefix => bot.addResponseWaiter(prefix, waiter));
 
-    void IIROSE_WSsend(bot, payload).then((sent) =>
+    void sendFrame(bot, payload).then((failure) =>
     {
-      if (sent || settled) return;
-      finish(null);
+      if (failure) finish({ data: null, reason: failure });
     });
   });
 }

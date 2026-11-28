@@ -3,6 +3,7 @@ import { Context, Bot, Fragment, Universal, Logger, Session } from 'koishi';
 import { normalizeRoomImageUrl, readJsonData, findRoomInGuild, flattenRooms, findUserNameById, parseAvatar, Unknown_User_Name, Unknown_Guild_Name, Unknown_Channel_Name, formatDuration, DEFAULT_AVATAR } from '../utils/utils';
 import { IIROSE_BotMessageEncoder } from './sendMessage';
 import { IIROSE_WSsend, WsClient } from '../utils/ws';
+import { waitForResponse } from '../utils/ws/response';
 import { Internal, InternalType } from './internal';
 import { comparePassword } from '../utils/password';
 import { SendOptions } from '@satorijs/protocol';
@@ -17,6 +18,7 @@ export interface ResponseWaiter
 {
   listener: (data: string) => void;
   stopPropagation: boolean;
+  matches?: (message: string) => boolean;
 }
 
 /** socket 无法发送时的原因，供调用方决定是重试还是放弃 */
@@ -55,8 +57,6 @@ export class IIROSE_Bot extends Bot<Context>
    * 不再像早期版本那样「后注册直接覆盖前一个」导致先前的调用饿死到超时。
    */
   public responseListeners = new Map<string, ResponseWaiter[]>();
-  /** 最近一次 sendAndWaitForResponse 因 socket 不可用而快速失败的原因（成功发送为 null） */
-  public lastResponseSkipReason: ResponseSkipReason | null = null;
   public awaitingUserListRefresh: boolean = false;
 
   static inject = ['assets'];
@@ -412,56 +412,14 @@ export class IIROSE_Bot extends Bot<Context>
    * @param timeout 超时时间 (毫秒)
    * @returns 返回一个Promise，该Promise会解析为响应字符串，或在超时/无法发送时解析为null
    */
-  public sendAndWaitForResponse(payload: string, responsePrefix: string, stopPropagation: boolean = true, timeout?: number): Promise<string | null>
+  public async sendAndWaitForResponse(payload: string, responsePrefix: string, stopPropagation: boolean = true, timeout?: number): Promise<string | null>
   {
-    const skipReason = this.socketSkipReason();
-    this.lastResponseSkipReason = skipReason;
-    if (skipReason)
-    {
-      this.loggerWarn(`[sendAndWaitForResponse] socket 不可用(${skipReason})，跳过发送 ${JSON.stringify(payload)}`);
-      return Promise.resolve(null);
-    }
-
-    const effectiveTimeout = timeout ?? this.config.timeout;
-
-    return new Promise((resolve) =>
-    {
-      let settled = false;
-      const waiter: ResponseWaiter = {
-        stopPropagation,
-        listener: (data: string) =>
-        {
-          if (settled) return;
-          settled = true;
-          dispose();
-          resolve(data);
-        },
-      };
-
-      const dispose = this.ctx.setTimeout(() =>
-      {
-        if (settled) return;
-        settled = true;
-        this.removeResponseWaiter(responsePrefix, waiter);
-        resolve(null); // 超时，解析为 null
-      }, effectiveTimeout);
-
-      this.addResponseWaiter(responsePrefix, waiter);
-
-      void IIROSE_WSsend(this, payload).then((sent) =>
-      {
-        if (sent || settled) return;
-        // 排队期间 socket 状态变差（dispose / 断开 / 回到 CONNECTING）：立即失败
-        settled = true;
-        dispose();
-        this.removeResponseWaiter(responsePrefix, waiter);
-        resolve(null);
-      });
-    });
+    const result = await waitForResponse(this, payload, [responsePrefix], { stopPropagation, timeout });
+    return result.data;
   }
 
   /** socket 是否可发送；不可用时返回原因 */
-  private socketSkipReason(): ResponseSkipReason | null
+  public socketSkipReason(): ResponseSkipReason | null
   {
     if (this.disposed) return 'disposed';
     if (!this.socket) return 'no-socket';
@@ -497,12 +455,8 @@ export class IIROSE_Bot extends Bot<Context>
     for (const [prefix, bucket] of this.responseListeners)
     {
       if (!message.startsWith(prefix)) continue;
-      const waiter = bucket[0];
-      if (!waiter)
-      {
-        this.responseListeners.delete(prefix);
-        continue;
-      }
+      const waiter = bucket.find(candidate => !candidate.matches || candidate.matches(message));
+      if (!waiter) continue;
       this.removeResponseWaiter(prefix, waiter);
       waiter.listener(message);
       return waiter.stopPropagation;

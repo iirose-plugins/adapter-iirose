@@ -1,12 +1,13 @@
 import type { Internal } from './base';
 import { sleep } from 'koishi';
+import { waitForResponse } from '../../utils/ws/response';
 import { IIROSE_WSsend } from '../../utils/ws';
 import { stockGet, stockBuy, stockSell } from '../../encoder/system/consume/stock';
 import { bankGet, bankDeposit, bankWithdraw } from '../../encoder/system/consume/bank';
 import getBalanceFunction from '../../encoder/user/getBalance';
 import payment, { parsePaymentCallback, PaymentCallback } from '../../encoder/user/payment';
 import { parseBalance } from '../../decoder/messages/user/consume/Balance';
-import { Stock, stock as parseStock } from '../../decoder/messages/system/consume/Stock';
+import { Stock, isStockResponse, stock as parseStock } from '../../decoder/messages/system/consume/Stock';
 import { BankCallback, bankCallback as parseBankCallback } from '../../decoder/messages/system/consume/BankCallback';
 
 export const economyMethods = {
@@ -22,26 +23,22 @@ export const economyMethods = {
 
   async stockGet(this: Internal): Promise<Stock | null>
   {
-    // 登录握手期间 socket 可能还不存在或处于 CONNECTING：
-    // sendAndWaitForResponse 会立即失败（不再白等一个超时），所以这里短等后重试一次。
+    // 仅在连接暂不可用时重试一次。
     for (let attempt = 0; attempt < 2; attempt++)
     {
-      const response = await this.bot.sendAndWaitForResponse(stockGet(), '>', false);
-      if (response)
-      {
-        const parsed = parseStock(response, this.bot);
-        if (!parsed) this.bot.loggerWarn('[stockGet] 股价回包无法解析:', JSON.stringify(response));
-        return parsed ?? null;
-      }
+      const { data, reason } = await waitForResponse(this.bot, stockGet(), ['>'], {
+        stopPropagation: false,
+        matches: isStockResponse,
+      });
+      if (data) return parseStock(data, this.bot) ?? null;
 
-      const skipReason = this.bot.lastResponseSkipReason;
-      if (attempt === 0 && skipReason)
+      if (attempt === 0 && (reason === 'no-socket' || reason === 'connecting' || reason === 'closed'))
       {
         await sleep(500);
         continue;
       }
 
-      this.bot.loggerWarn(`[stockGet] 未取得股价回包（${skipReason ?? 'timeout'}）`);
+      this.bot.loggerWarn(`[stockGet] 未取得股价回包（${reason}）`);
       return null;
     }
     return null;
